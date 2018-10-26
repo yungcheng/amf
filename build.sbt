@@ -58,7 +58,7 @@ lazy val coreJS  = core.js.in(file("./amf-core/js"))
   ********************************************** */
 lazy val webapi = crossProject(JSPlatform, JVMPlatform)
   .settings(name := "amf-webapi")
-  .dependsOn(core)
+  .dependsOn(core, vocabularies)
   .in(file("./amf-webapi"))
   .settings(settings: _*)
   .jvmSettings(
