@@ -26,7 +26,7 @@ trait ShapeModel extends DomainElementModel with LinkableElementModel with KeyFi
 
   val Values = Field(SortedArray(DataNodeModel), Shacl + "in", ModelDoc(ExternalModelVocabularies.Shacl, "in", "Enumeration of possible values for a data shape property"))
 
-  val Closure = Field(Array(Iri), Shapes + "closure", ModelDoc(ModelVocabularies.Shapes, "inheritance closuer", "Transitive closure of data shapes this particular shape inherits structure from"))
+  val Closure = Field(Array(Iri), Shapes + "closure", ModelDoc(ModelVocabularies.Shapes, "inheritance closure", "Transitive closure of data shapes this particular shape inherits structure from"))
 
   /**
     * Inheritance relationship between shapes. Introduces the idea that the constraints defined by this shape are a specialization of the constraints of the base shapes.
