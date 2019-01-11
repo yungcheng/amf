@@ -168,7 +168,7 @@ case class PayloadValidation(validationCandidates: Seq[ValidationCandidate],
   }
 }
 
-object PayloadValidatorPlugin extends AMFPayloadValidationPlugin {
+object PayloadValidatorPlugin extends  AMFPayloadValidationPlugin {
 
   override def canValidate(shape: Shape, env: Environment): Boolean = {
     shape match {
