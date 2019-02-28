@@ -1,4 +1,5 @@
 package amf.plugins.document.webapi.resolution.pipelines.amfgate.steps
+
 import amf.core.AMFCompiler
 import amf.core.model.document.BaseUnit
 import amf.core.parser.ErrorHandler
