@@ -43,19 +43,35 @@ class SyamlSyntaxFixerStep(results: Seq[AMFValidationResult])(override implicit 
 
   private def fixResult(result: AMFValidationResult): Unit = {
     result.message match {
-      case "Expecting !!bool and !!str provided" | "Expecting !!bool and !!int provided" =>
-        fixBoolScalar(result.position.get.range)
-      case _ => // ignore
+      case "Expecting !!bool and !!str provided" => fixScalar(result.position.get.range, Bool)
+      case "Expecting !!str and !!int provided"  => fixScalar(result.position.get.range, Int)
+      case _                                     => // ignore
     }
   }
 
-  private def fixBoolScalar(range: amf.core.parser.Range): Unit = {
+  private def fixScalar(range: amf.core.parser.Range, target: Target): Unit = {
     val line = lines(range.start.line - 1)
 
+    // todo: in future we need to check if it's key or value to replace
     val text = line.split(":").last.trim
-    if (text.equals("\"false\"") || line.equals("0"))
-      lines(range.start.line - 1) = lines(range.start.line - 1).substring(0, range.start.column) + "false"
-    else
-      lines(range.start.line - 1) = lines(range.start.line - 1).substring(0, range.start.column) + "true"
+    val newText: String = target match {
+      case Bool => fixBoolScalar(text)
+      case Int  => fixStrScalar(text)
+    }
+
+    lines(range.start.line - 1) = lines(range.start.line - 1).substring(0, range.start.column) + newText
   }
+
+  private def fixBoolScalar(text: String): String = {
+    if (text.equals("\"false\"") || text.equals("0")) "false"
+    else "true"
+  }
+
+  private def fixStrScalar(text: String): String = "\"" + text + "\""
+
 }
+sealed trait Target
+
+object String extends Target
+object Int    extends Target
+object Bool   extends Target

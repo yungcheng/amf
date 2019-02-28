@@ -12,13 +12,13 @@ import org.scalatest._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FixCycleTest extends AsyncFreeSpec with FileAssertionTest with Matchers {
+class FixCycleTest extends AsyncFunSuite with FileAssertionTest with Matchers {
 
   private val basePath   = "file://amf-client/shared/src/test/resources/amfgate/"
-  private val goldenPath = "file://amf-client/shared/src/test/resources/amfgate/goldens/"
+  private val goldenPath = "amf-client/shared/src/test/resources/amfgate/goldens/"
 
   override implicit val executionContext = ExecutionContext.Implicits.global
-  def run(api: String, goldenFix: String): Future[Assertion] = {
+  def run(api: String): Future[Assertion] = {
 
     for {
       v        <- Validation(platform)
@@ -28,10 +28,18 @@ class FixCycleTest extends AsyncFreeSpec with FileAssertionTest with Matchers {
         .resolve(original) // todo: RuntimeResolve.fix ???
       fixedS <- AMFRenderer(fixedUnit, Raml10, RenderOptions()).renderToString
       diff <- {
-        writeTemporaryFile(goldenPath + goldenFix)(fixedS)
-          .flatMap(assertDifferences(_, goldenPath + goldenFix))
+        writeTemporaryFile(goldenPath + api)(fixedS)
+          .flatMap(assertDifferences(_, goldenPath + api))
       }
     } yield diff
+  }
+
+  test("Test expecting-bool-str-provided.raml") {
+    run("expecting-bool-str-provided.raml")
+  }
+
+  test("Test expecting-str-int-provided.raml") {
+    run("expecting-str-int-provided.raml")
   }
 
 }

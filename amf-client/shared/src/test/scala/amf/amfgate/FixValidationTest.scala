@@ -3,11 +3,11 @@ import amf.Raml10Profile
 import amf.core.parser.UnhandledErrorHandler
 import amf.core.remote.RamlYamlHint
 import amf.core.services.RuntimeValidator
-import amf.core.validation.SeverityLevels
 import amf.facades.{AMFCompiler, Validation}
 import amf.io.FileAssertionTest
 import amf.plugins.document.webapi.resolution.pipelines.amfgate.Raml10FixerResolutionPipeline
 import org.scalatest.{Assertion, AsyncFunSuite, Matchers}
+
 import scala.concurrent.Future
 
 class FixValidationTest extends AsyncFunSuite with FileAssertionTest with Matchers {
@@ -27,8 +27,11 @@ class FixValidationTest extends AsyncFunSuite with FileAssertionTest with Matche
     } yield newReport.conforms shouldBe true
   }
 
-//
   test("Expecting bool") {
     run("expecting-bool-str-provided.raml")
+  }
+
+  test("Expecting str int provided") {
+    run("expecting-str-int-provided.raml")
   }
 }
