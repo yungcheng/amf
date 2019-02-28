@@ -28,7 +28,7 @@ class SyamlSyntaxFixerStep(results: Seq[AMFValidationResult])(override implicit 
 
     val raw = model.raw.getOrElse(throw new Exception("Raw should be present"))
     lines ++= raw.split("\n")
-    results.foreach(fixResult)
+    toFix.foreach(fixResult)
     build(model.id)
   }
 
