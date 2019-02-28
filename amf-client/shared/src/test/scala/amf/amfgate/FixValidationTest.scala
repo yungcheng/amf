@@ -1,37 +1,81 @@
 package amf.amfgate
 import amf.Raml10Profile
+import amf.core.emitter.RenderOptions
+import amf.core.model.document.BaseUnit
 import amf.core.parser.UnhandledErrorHandler
-import amf.core.remote.RamlYamlHint
+import amf.core.remote.{Raml10, RamlYamlHint}
 import amf.core.services.RuntimeValidator
+import amf.core.validation.AMFValidationReport
+import amf.emit.AMFRenderer
 import amf.facades.{AMFCompiler, Validation}
 import amf.io.FileAssertionTest
 import amf.plugins.document.webapi.resolution.pipelines.amfgate.Raml10FixerResolutionPipeline
-import org.scalatest.{Assertion, AsyncFunSuite, Matchers}
+import org.scalatest.{Assertion, AsyncFreeSpec, AsyncFunSuite, Matchers}
 
 import scala.concurrent.Future
 
-class FixValidationTest extends AsyncFunSuite with FileAssertionTest with Matchers {
+class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matchers {
 
-  private val basePath = "file://amf-client/shared/src/test/resources/amfgate/"
+  private val basePath   = "file://amf-client/shared/src/test/resources/amfgate/"
+  private val goldenPath = "amf-client/shared/src/test/resources/amfgate/goldens/"
 
   override implicit val executionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  def run(api: String): Future[Assertion] = {
+  case class UnitAndReport(bu: BaseUnit, report: AMFValidationReport)
+
+  private def parseAndValidate(api: String): Future[UnitAndReport] = {
     for {
       v        <- Validation(platform)
       original <- AMFCompiler(basePath + api, platform, RamlYamlHint, v).build()
       errors   <- RuntimeValidator(original, Raml10Profile)
-      fixedUnit <- new Raml10FixerResolutionPipeline(errors.results)(UnhandledErrorHandler)
-        .resolve(original) // todo: RuntimeResolve.fix ???
-      newReport <- RuntimeValidator(fixedUnit, Raml10Profile)
-    } yield newReport.conforms shouldBe true
+    } yield UnitAndReport(original, errors)
   }
 
-  test("Expecting bool") {
-    run("expecting-bool-str-provided.raml")
+  def fixValidation(api: String): Future[BaseUnit] = {
+    for {
+      unitAndReport <- parseAndValidate(api)
+      fixedUnit <- new Raml10FixerResolutionPipeline(unitAndReport.report.results)(UnhandledErrorHandler)
+        .resolve(unitAndReport.bu) // todo: RuntimeResolve.fix ???
+    } yield fixedUnit
   }
 
-  test("Expecting str int provided") {
-    run("expecting-str-int-provided.raml")
+  def assertValidation(api: String): Future[Assertion] =
+    fixValidation(api).flatMap(RuntimeValidator(_, Raml10Profile)).map(_ shouldBe true)
+
+  def emitFixed(api: String): Future[Assertion] = {
+    for {
+      bu     <- fixValidation(api)
+      fixedS <- AMFRenderer(bu, Raml10, RenderOptions()).renderToString
+      diff <- {
+        writeTemporaryFile(basePath + api)(fixedS)
+          .flatMap(assertDifferences(_, goldenPath + api))
+      }
+    } yield diff
   }
+
+  def validateEmited(api: String): Future[Assertion] = {
+    parseAndValidate(api).map(_.report.conforms shouldBe true)
+  }
+
+  case class Fixture(name: String, file: String)
+  val fixture = Seq(Fixture("Expecting bool", "expecting-bool-str-provided.raml"),
+                    Fixture("Expecting str int provided", "expecting-str-int-provided.raml"))
+
+  fixture.foreach { c =>
+    s"Test ${c.name}" - {
+      "Test fix validation" - {
+        fixValidation(c.file)
+      }
+
+      "Cycle fixed" - {
+        "Emit fixed" - {
+          emitFixed(c.file)
+        }
+        "Validate emited fixed" - {
+          validateEmited(c.file)
+        }
+      }
+    }
+  }
+
 }
