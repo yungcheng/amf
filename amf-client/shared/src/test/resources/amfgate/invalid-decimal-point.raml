@@ -1,0 +1,9 @@
+#%RAML 1.0
+title: invalid-decimal-point
+
+types:
+  foo:
+    type: integer
+    multipleOf: 0.2
+    minimum: 0.2
+    maximum: 0.4

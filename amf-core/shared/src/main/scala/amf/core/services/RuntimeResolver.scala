@@ -4,6 +4,7 @@ import amf.core.model.document.BaseUnit
 import amf.client.plugins.AMFDocumentPlugin
 import amf.core.parser.ErrorHandler
 import amf.core.registries.AMFPluginsRegistry
+import amf.core.validation.AMFValidationResult
 import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 object RuntimeResolver {
@@ -27,5 +28,28 @@ object RuntimeResolver {
         )
         unit
     }
+  }
+
+  def fix(vendor: String, unit: BaseUnit, results: Seq[AMFValidationResult], errorHandler: ErrorHandler): BaseUnit = {
+    val plugin = AMFPluginsRegistry.documentPluginForID(vendor) match {
+      case Some(documentPlugin) => Some(documentPlugin)
+      case None                 => AMFPluginsRegistry.documentPluginForVendor(vendor).headOption
+    }
+
+    // todo: documentPlugin.fix ???
+//    plugin match {
+//      case Some(documentPlugin: AMFDocumentPlugin) => documentPlugin.resolve(unit, errorHandler, pipelineId)
+//      case None =>
+//        errorHandler.violation(
+//          ResolutionValidation,
+//          unit.id,
+//          None,
+//          s"Cannot find domain plugin for vendor $vendor to resolve unit ${unit.location}",
+//          unit.position(),
+//          unit.location()
+//        )
+//        unit
+//    }
+    unit
   }
 }
