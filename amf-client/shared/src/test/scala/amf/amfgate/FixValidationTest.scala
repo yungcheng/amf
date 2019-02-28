@@ -8,23 +8,27 @@ import amf.facades.{AMFCompiler, Validation}
 import amf.io.FileAssertionTest
 import amf.plugins.document.webapi.resolution.pipelines.amfgate.Raml10FixerResolutionPipeline
 import org.scalatest.{Assertion, AsyncFunSuite, Matchers}
-
 import scala.concurrent.Future
 
 class FixValidationTest extends AsyncFunSuite with FileAssertionTest with Matchers {
 
   private val basePath = "file://amf-client/shared/src/test/resources/amfgate/"
 
-  def run(api: String, goldenFix: String): Future[Assertion] = {
+  override implicit val executionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+  def run(api: String): Future[Assertion] = {
     for {
       v        <- Validation(platform)
       original <- AMFCompiler(basePath + api, platform, RamlYamlHint, v).build()
       errors   <- RuntimeValidator(original, Raml10Profile)
-      fixedUnit <- Future(
-        new Raml10FixerResolutionPipeline(UnhandledErrorHandler,
-                                          errors.results.filter(_.level == SeverityLevels.VIOLATION))
-          .resolve(original)) // todo: RuntimeResolve.fix ???
+      fixedUnit <- new Raml10FixerResolutionPipeline(errors.results)(UnhandledErrorHandler)
+        .resolve(original) // todo: RuntimeResolve.fix ???
       newReport <- RuntimeValidator(fixedUnit, Raml10Profile)
     } yield newReport.conforms shouldBe true
+  }
+
+//
+  test("Expecting bool") {
+    run("expecting-bool-str-provided.raml")
   }
 }
