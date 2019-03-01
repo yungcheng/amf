@@ -35,7 +35,12 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
     for {
       unitAndReport <- parseAndValidate(api)
       fixedUnit <- new Raml10FixerResolutionPipeline(unitAndReport.report.results)(UnhandledErrorHandler)
-        .resolve(unitAndReport.bu) // todo: RuntimeResolve.fix ???
+        .resolve(unitAndReport.bu)
+        .map { u =>
+          u.parserRun = u.parserRun.map(_ + 1)
+          u
+        }
+      // todo: RuntimeResolve.fix ???
     } yield fixedUnit
   }
 
@@ -62,12 +67,13 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
     Seq(
       Fixture("Expecting bool", "expecting-bool-str-provided.raml"),
       Fixture("Expecting str int provided", "expecting-str-int-provided.raml"),
-      Fixture("Invalid Decimal Point", "invalid-decimal-point.raml")
+      Fixture("Invalid Decimal Point", "invalid-decimal-point.raml"),
+      Fixture("Invalid Example", "named-example.raml")
     )
 
   fixture.foreach { c =>
     s"Test ${c.name}" - {
-      "Test fix validation" in {
+      s"Test fix validation ${c.name}" in {
         assertValidation(c.file)
       }
 
