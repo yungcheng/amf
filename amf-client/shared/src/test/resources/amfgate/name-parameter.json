@@ -1,0 +1,24 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Test"
+  },
+  "paths": {
+    "/endpoint": {
+      "parameters": [
+        {
+          "in": "header",
+          "type": "integer"
+        }
+      ],
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  }
+}

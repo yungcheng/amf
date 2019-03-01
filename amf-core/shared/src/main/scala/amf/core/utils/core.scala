@@ -168,7 +168,7 @@ package object utils {
 
     def genId(id: String): String = {
       c += 1
-      s"${id}_$c"
+      s"${id}$c"
     }
 
     def reset(): Unit = c = 0
