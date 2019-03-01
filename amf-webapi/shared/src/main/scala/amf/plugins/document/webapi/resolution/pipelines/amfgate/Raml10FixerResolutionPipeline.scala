@@ -4,6 +4,10 @@ import amf.core.model.document.BaseUnit
 import amf.core.parser.ErrorHandler
 import amf.core.validation.AMFValidationResult
 import amf.plugins.document.webapi.resolution.pipelines.amfgate.steps.{InvalidFacetFormatForType, SyamlSyntaxFixerStep}
+import amf.plugins.document.webapi.resolution.pipelines.amfgate.steps.{
+  MandatoryMediaTypeFixerStep,
+  SyamlSyntaxFixerStep
+}
 import amf.{ProfileName, Raml10Profile}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,7 +17,8 @@ class Raml10FixerResolutionPipeline(results: Seq[AMFValidationResult])(implicit 
   def profileName: ProfileName = Raml10Profile
   val steps: Seq[FixerStage] = Seq(
     new SyamlSyntaxFixerStep(results),
-    new InvalidFacetFormatForType(results)
+    new InvalidFacetFormatForType(results),
+    new MandatoryMediaTypeFixerStep(results)
   )
 
   final def resolve(model: BaseUnit): Future[BaseUnit] = steps.foldLeft(Future.successful(model)) {

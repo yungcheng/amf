@@ -1,0 +1,20 @@
+#%RAML 1.0
+title: Mandatory payload
+/test:
+  get:
+    body:
+      application/json:
+        type: object
+        properties:
+          some:
+            type: string
+        example:
+          some: somesome
+  post:
+    body:
+      application/xml:
+        type: object
+        properties:
+          someOther:
+            type: string
+        example: <someOther>someString</someOther>

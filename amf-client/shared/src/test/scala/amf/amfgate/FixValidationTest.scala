@@ -1,4 +1,5 @@
 package amf.amfgate
+
 import amf.Raml10Profile
 import amf.core.emitter.RenderOptions
 import amf.core.model.document.BaseUnit
@@ -10,16 +11,16 @@ import amf.emit.AMFRenderer
 import amf.facades.{AMFCompiler, Validation}
 import amf.io.FileAssertionTest
 import amf.plugins.document.webapi.resolution.pipelines.amfgate.Raml10FixerResolutionPipeline
-import org.scalatest.{Assertion, AsyncFreeSpec, AsyncFunSuite, Matchers}
+import org.scalatest.{Assertion, AsyncFreeSpec, Matchers}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matchers {
 
   private val basePath   = "file://amf-client/shared/src/test/resources/amfgate/"
   private val goldenPath = "amf-client/shared/src/test/resources/amfgate/goldens/"
 
-  override implicit val executionContext = scala.concurrent.ExecutionContext.Implicits.global
+  override implicit val executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   case class UnitAndReport(bu: BaseUnit, report: AMFValidationReport)
 
@@ -58,17 +59,18 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
     } yield diff
   }
 
-  def validateEmited(api: String): Future[Assertion] = {
+  def validateEmitted(api: String): Future[Assertion] = {
     parseAndValidate(api, "file://" + goldenPath).map(_.report.conforms shouldBe true)
   }
 
   case class Fixture(name: String, file: String)
-  val fixture =
+  private val fixture =
     Seq(
       Fixture("Expecting bool", "expecting-bool-str-provided.raml"),
       Fixture("Expecting str int provided", "expecting-str-int-provided.raml"),
       Fixture("Invalid Decimal Point", "invalid-decimal-point.raml"),
-      Fixture("Invalid Example", "named-example.raml")
+      Fixture("Invalid Example", "named-example.raml"),
+      Fixture("Mandatory payload mediaType", "payload-media-type-mandatory.raml")
     )
 
   fixture.foreach { c =>
@@ -82,7 +84,7 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
           emitFixed(c.file)
         }
         s"Validate emited fixed ${c.name}" in {
-          validateEmited(c.file)
+          validateEmitted(c.file)
         }
       }
     }

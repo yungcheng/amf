@@ -1,6 +1,16 @@
 #%RAML 1.0
-title: expecting-str-int-provided
-
+title: Mandatory payload
 /test:
   get:
     body:
+      type: object
+      properties:
+        some: string
+      example:
+        some: somesome
+  post:
+    body:
+      type: object
+      properties:
+        someOther: string
+      example: <someOther>someString</someOther>
