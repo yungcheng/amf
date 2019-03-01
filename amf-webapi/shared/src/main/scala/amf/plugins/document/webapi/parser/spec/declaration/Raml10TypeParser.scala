@@ -771,8 +771,8 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
         "minimum",
         entry => { // todo pope
           val value = ScalarNode(entry.value)
-          if (ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value))
-            shape.set(ScalarShapeModel.Minimum, value.text(), Annotations(entry))
+          ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value)
+          shape.set(ScalarShapeModel.Minimum, value.text(), Annotations(entry))
         }
       )
 
@@ -780,8 +780,8 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
         "maximum",
         entry => { // todo pope
           val value = ScalarNode(entry.value)
-          if (ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value))
-            shape.set(ScalarShapeModel.Maximum, value.text(), Annotations(entry))
+          ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value)
+          shape.set(ScalarShapeModel.Maximum, value.text(), Annotations(entry))
         }
       )
       // We don't need to parse (format) extension because in oas must not be emitted, and in raml will be emitted.
@@ -790,8 +790,8 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
         "multipleOf",
         entry => { // todo pope
           val value = ScalarNode(entry.value)
-          if (ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value))
-            shape.set(ScalarShapeModel.MultipleOf, value.text(), Annotations(entry))
+          ensurePrecision(shape.dataType.option(), entry.value.toString(), entry.value)
+          shape.set(ScalarShapeModel.MultipleOf, value.text(), Annotations(entry))
         }
       )
 

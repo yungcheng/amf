@@ -23,10 +23,10 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
 
   case class UnitAndReport(bu: BaseUnit, report: AMFValidationReport)
 
-  private def parseAndValidate(api: String): Future[UnitAndReport] = {
+  private def parseAndValidate(api: String, path: String = basePath): Future[UnitAndReport] = {
     for {
       v        <- Validation(platform)
-      original <- AMFCompiler(basePath + api, platform, RamlYamlHint, v).build()
+      original <- AMFCompiler(path + api, platform, RamlYamlHint, v).build()
       errors   <- RuntimeValidator(original, Raml10Profile)
     } yield UnitAndReport(original, errors)
   }
@@ -40,38 +40,42 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
   }
 
   def assertValidation(api: String): Future[Assertion] =
-    fixValidation(api).flatMap(RuntimeValidator(_, Raml10Profile)).map(_ shouldBe true)
+    fixValidation(api).flatMap(RuntimeValidator(_, Raml10Profile)).map(_.conforms shouldBe true)
 
   def emitFixed(api: String): Future[Assertion] = {
     for {
       bu     <- fixValidation(api)
       fixedS <- AMFRenderer(bu, Raml10, RenderOptions()).renderToString
       diff <- {
-        writeTemporaryFile(basePath + api)(fixedS)
+        writeTemporaryFile(goldenPath + api)(fixedS)
           .flatMap(assertDifferences(_, goldenPath + api))
       }
     } yield diff
   }
 
   def validateEmited(api: String): Future[Assertion] = {
-    parseAndValidate(api).map(_.report.conforms shouldBe true)
+    parseAndValidate(api, "file://" + goldenPath).map(_.report.conforms shouldBe true)
   }
 
   case class Fixture(name: String, file: String)
-  val fixture = Seq(Fixture("Expecting bool", "expecting-bool-str-provided.raml"),
-                    Fixture("Expecting str int provided", "expecting-str-int-provided.raml"))
+  val fixture =
+    Seq(
+      Fixture("Expecting bool", "expecting-bool-str-provided.raml"),
+      Fixture("Expecting str int provided", "expecting-str-int-provided.raml"),
+      Fixture("Invalid Decimal Point", "invalid-decimal-point.raml")
+    )
 
   fixture.foreach { c =>
     s"Test ${c.name}" - {
-      "Test fix validation" - {
-        fixValidation(c.file)
+      "Test fix validation" in {
+        assertValidation(c.file)
       }
 
       "Cycle fixed" - {
-        "Emit fixed" - {
+        s"Emit fixed ${c.name}" in {
           emitFixed(c.file)
         }
-        "Validate emited fixed" - {
+        s"Validate emited fixed ${c.name}" in {
           validateEmited(c.file)
         }
       }
