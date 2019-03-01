@@ -5,16 +5,20 @@ title: Mandatory payload
     body:
       application/json:
         type: object
+        example:
+          some: somesome
+        additionalProperties: true
         properties:
           some:
             type: string
-        example:
-          some: somesome
+            required: true
   post:
     body:
       application/xml:
         type: object
+        example: <schema><someOther>someString</someOther></schema>
+        additionalProperties: true
         properties:
           someOther:
             type: string
-        example: <someOther>someString</someOther>
+            required: true

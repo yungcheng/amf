@@ -3,16 +3,22 @@ title: Mandatory payload
 /test:
   get:
     body:
-      type: object
-      properties:
-        some:
-          type: string
-      example:
-        some: somesome
+      application/json:
+        type: object
+        example:
+          some: somesome
+        additionalProperties: true
+        properties:
+          some:
+            type: string
+            required: true
   post:
     body:
-      type: object
-      properties:
-        someOther:
-          type: string
-      example: <someOther>someString</someOther>
+      application/xml:
+        type: object
+        example: <schema><someOther>someString</someOther></schema>
+        additionalProperties: true
+        properties:
+          someOther:
+            type: string
+            required: true

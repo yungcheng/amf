@@ -13,7 +13,7 @@ import amf.plugins.features.validation.ParserSideValidations
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
-
+import scala.concurrent.ExecutionContext.Implicits.global
 class SyamlSyntaxFixerStep(results: Seq[AMFValidationResult])(override implicit val errorHandler: ErrorHandler)
     extends FixerStage(results)
     with PlatformSecrets {
@@ -25,11 +25,12 @@ class SyamlSyntaxFixerStep(results: Seq[AMFValidationResult])(override implicit 
   private val lines: ListBuffer[String] = ListBuffer()
 
   override def resolve(model: BaseUnit): Future[BaseUnit] = {
-
-    val raw = model.raw.getOrElse(throw new Exception("Raw should be present"))
-    lines ++= raw.split("\n")
-    toFix.foreach(fixResult)
-    build(model.id)
+    if (toFix.nonEmpty) {
+      val raw = model.raw.getOrElse(throw new Exception("Raw should be present"))
+      lines ++= raw.split("\n")
+      toFix.foreach(fixResult)
+      build(model.id)
+    } else Future(model)
   }
 
   private def build(id: String): Future[BaseUnit] =
