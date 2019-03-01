@@ -70,7 +70,8 @@ class FixValidationTest extends AsyncFreeSpec with FileAssertionTest with Matche
       Fixture("Expecting str int provided", "expecting-str-int-provided.raml"),
       Fixture("Invalid Decimal Point", "invalid-decimal-point.raml"),
       Fixture("Invalid Example", "named-example.raml"),
-      Fixture("Mandatory payload mediaType", "payload-media-type-mandatory.raml")
+      Fixture("Mandatory payload mediaType", "payload-media-type-mandatory.raml"),
+      Fixture("Schema keyword is deprecated", "schema-deprecated.raml")
     )
 
   fixture.foreach { c =>
