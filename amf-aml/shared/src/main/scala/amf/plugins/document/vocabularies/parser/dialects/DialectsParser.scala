@@ -334,6 +334,9 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       case unionNodeMapping: UnionNodeMapping =>
         checkNodeMappableReferences(unionNodeMapping)
 
+      case pluginNodeMapping: PluginNodeMapping =>
+        // ignore
+
       case nodeMapping: NodeMapping =>
         nodeMapping.propertiesMapping().foreach { propertyMapping =>
           checkNodeMappableReferences(propertyMapping)
@@ -364,7 +367,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
   }
 
   /**
-    * Transforming URIs in references of node ranges and discrminators into actual
+    * Transforming URIs in references of node ranges and discriminators into actual
     * label with a reference
     */
   protected def checkNodeMappableReferences[T <: DomainElement](mappable: NodeWithDiscriminator[T]) = {
@@ -420,15 +423,17 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
         case YType.Map =>
           e.value.as[YMap].entries.foreach { entry =>
             parseNodeMapping(entry, {
-              case nodeMapping: NodeMapping      => nodeMapping.withName(entry.key).adopted(parent)
-              case nodeMapping: UnionNodeMapping => nodeMapping.withName(entry.key).adopted(parent)
+              case nodeMapping: NodeMapping       => nodeMapping.withName(entry.key).adopted(parent)
+              case nodeMapping: UnionNodeMapping  => nodeMapping.withName(entry.key).adopted(parent)
+              case nodeMapping: PluginNodeMapping => nodeMapping.withName(entry.key).adopted(parent)
               case _                             =>
                 ctx.violation(DialectError, parent, s"Error only valid node mapping or union mapping can be declared", entry)
                 None
             }) match {
-              case Some(nodeMapping: NodeMapping)      => ctx.declarations += nodeMapping
-              case Some(nodeMapping: UnionNodeMapping) => ctx.declarations += nodeMapping
-              case None                                => ctx.violation(DialectError, parent, s"Error parsing shape '$entry'", entry)
+              case Some(nodeMapping: NodeMapping)       => ctx.declarations += nodeMapping
+              case Some(nodeMapping: UnionNodeMapping)  => ctx.declarations += nodeMapping
+              case Some(nodeMapping: PluginNodeMapping) => ctx.declarations += nodeMapping
+              case None                                 => ctx.violation(DialectError, parent, s"Error parsing shape '$entry'", entry)
             }
           }
         case YType.Null =>
@@ -478,6 +483,46 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
 
 
     Some(unionNodeMapping)
+  }
+
+  protected def parsePluginNodeMapping(map: YMap, adopt: DomainElement => Any, fragment: Boolean = false): Option[PluginNodeMapping] = {
+    val pluginNodeMapping = PluginNodeMapping(map)
+
+    adopt(pluginNodeMapping)
+
+    map.key("plugin",
+      entry => {
+        entry.value.tagType match {
+          case YType.Str =>
+            try {
+              pluginNodeMapping.withPluginFragment(entry.value.as[String])
+            } catch {
+              case _: Exception =>
+                ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a vendor name string parseable by some AMF plugin", entry.value)
+            }
+          case _         =>
+            ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a vendor name string parseable by some AMF plugin", entry.value)
+        }
+      }
+    )
+
+    map.key("fragment",
+      entry => {
+        entry.value.tagType match {
+          case YType.Str =>
+            try {
+              pluginNodeMapping.withPluginFragment(entry.value.as[String])
+            } catch {
+              case _: Exception =>
+                ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a fragment name string parseable by some AMF plugin", entry.value)
+            }
+          case _         =>
+            ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a fragment name string parseable by some AMF plugin", entry.value)
+        }
+      }
+    )
+
+    Some(pluginNodeMapping)
   }
 
   def parseSingleNodeMapping(map: YMap, adopt: DomainElement => Any, fragment: Boolean = false): Option[NodeMapping] = {
@@ -553,6 +598,8 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
         val map         = entry.value.as[YMap]
         if (map.key("union").isDefined) {
           parseUnionNodeMapping(map, adopt, fragment)
+        } else if (map.key("plugin").isDefined) {
+          parsePluginNodeMapping(map, adopt, fragment)
         } else {
           parseSingleNodeMapping(map, adopt, fragment)
         }
@@ -1003,6 +1050,9 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       case unionNodeMapping: UnionNodeMapping =>
         checkNodeMappableReferences(unionNodeMapping)
 
+      case pluginNodeMapping: PluginNodeMapping =>
+        // ignore
+
       case nodeMapping: NodeMapping =>
         nodeMapping.propertiesMapping().foreach { propertyMapping =>
           checkNodeMappableReferences(propertyMapping)
@@ -1064,8 +1114,9 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
     val fragment = toFragment(dialect)
 
     parseNodeMapping(YMapEntry(YNode("fragment"), map),
-                     { case mapping: NodeMapping      => mapping.withId(fragment.id + "/fragment").withName("fragment")
-                       case mapping: UnionNodeMapping => mapping.withId(fragment.id + "/fragment").withName("fragment")},
+                     { case mapping: NodeMapping       => mapping.withId(fragment.id + "/fragment").withName("fragment")
+                       case mapping: UnionNodeMapping  => mapping.withId(fragment.id + "/fragment").withName("fragment")
+                       case mapping: PluginNodeMapping => mapping.withId(fragment.id + "/fragment").withName("fragment")},
                      fragment = true) match {
       case Some(encoded: DomainElement) => fragment.fields.setWithoutId(FragmentModel.Encodes, encoded)
       case _                            => // ignore
