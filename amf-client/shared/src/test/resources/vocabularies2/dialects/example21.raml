@@ -1,0 +1,22 @@
+#%Dialect 1.0
+dialect: Test
+version: 1.28a
+nodeMappings:
+  A:
+    classTerm: ns.A
+    mapping:
+      a:
+        propertyTerm: ns.a
+        range: string
+        mandatory: true
+      type:
+        propertyTerm: ns.type
+        range: Schema
+  Schema:
+    plugin: RAML 1.0
+    fragment: RAML 1.0 DataType
+external:
+  ns: http://test.com/ns#
+documents:
+  root:
+    encodes: A

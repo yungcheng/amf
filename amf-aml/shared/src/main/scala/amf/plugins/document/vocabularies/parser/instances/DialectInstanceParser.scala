@@ -2,20 +2,11 @@ package amf.plugins.document.vocabularies.parser.instances
 
 import amf.core.Root
 import amf.core.annotations.{Aliases, LexicalInformation}
+import amf.core.client.ParsingOptions
 import amf.core.model.document.{BaseUnit, DeclaresModel, EncodesModel}
 import amf.core.model.domain.{Annotation, DomainElement}
-import amf.core.parser.{
-  Annotations,
-  BaseSpecParser,
-  EmptyFutureDeclarations,
-  ErrorHandler,
-  FutureDeclarations,
-  ParsedReference,
-  ParserContext,
-  Reference,
-  SearchScope,
-  _
-}
+import amf.core.parser.{Annotations, BaseSpecParser, EmptyFutureDeclarations, ErrorHandler, FutureDeclarations, ParsedReference, ParserContext, Reference, SearchScope, _}
+import amf.core.registries.AMFPluginsRegistry
 import amf.core.unsafe.PlatformSecrets
 import amf.core.utils._
 import amf.core.vocabulary.Namespace
@@ -25,11 +16,7 @@ import amf.plugins.document.vocabularies.model.document._
 import amf.plugins.document.vocabularies.model.domain._
 import amf.plugins.document.vocabularies.parser.common.{AnnotationsParser, SyntaxErrorReporter}
 import amf.plugins.document.vocabularies.parser.vocabularies.VocabularyDeclarations
-import amf.plugins.features.validation.ParserSideValidations.{
-  DialectAmbiguousRangeSpecification,
-  DialectError,
-  InvalidUnionType
-}
+import amf.plugins.features.validation.ParserSideValidations.{DialectAmbiguousRangeSpecification, DialectError, InvalidUnionType}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.model._
 
@@ -517,7 +504,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                           mappable: NodeMappable,
                           additionalProperties: Map[String, Any],
                           rootNode: Boolean = false): Option[DialectDomainElement] = {
-    val result = ast.tagType match {
+    val result: Option[DialectDomainElement] = ast.tagType match {
       case YType.Map =>
         val nodeMap = ast.as[YMap]
         dispatchNodeMap(nodeMap) match {
@@ -556,6 +543,9 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
 
               case unionMapping: UnionNodeMapping =>
                 parseObjectUnion(defaultId, Seq(path), ast, unionMapping, additionalProperties)
+
+              case pluginMapping: PluginNodeMapping =>
+                parseWithPlugin(defaultId, Seq(path), ast, pluginMapping, additionalProperties)
             }
 
         }
@@ -573,6 +563,53 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
       case other => other
     }
   }
+
+  def parseWithPlugin(defaultId: String,
+                      path: Seq[String],
+                      ast: YNode,
+                      pluginMapping: PluginNodeMapping,
+                      additionalProperties: Map[String, Any]): Option[DialectDomainElement] = {
+    val fragment = pluginMapping.pluginFragment.value()
+    val vendor = pluginMapping.pluginVendor.value()
+    val localDoc = YDocument(IndexedSeq(ast), root.location + "#" + path.mkString("/"))
+    val localComment = YComment("%" + fragment.trim)
+
+    val localRoot = Root(
+      SyamlParsedDocument(
+        localDoc,
+        Some(localComment)
+      ),
+      root.location,
+      root.mediatype,
+      root.references,
+      InferredLinkReference,
+      root.raw
+    )
+
+    AMFPluginsRegistry.documentPluginForVendor(vendor).find(_.canParse(localRoot)) match {
+      case Some(domainPlugin) =>
+        val newCtx = ctx.copyWithSonsReferences()
+        domainPlugin.parse(localRoot, newCtx, platform, ParsingOptions()) match {
+          case Some(baseUnit: EncodesModel) => {
+            val parsed = baseUnit.encodes
+            val wrapper = DialectDomainElement()
+            wrapper.withPluginNode(parsed)
+            wrapper.withDefinedBy(pluginMapping)
+            Some(wrapper)
+          }
+          case _ => {
+            ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragmetn $fragment", ast)
+            None
+          }
+        }
+      case _                  =>
+        ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragmetn $fragment", ast)
+        None
+    }
+
+  }
+
+
 
   protected def parseProperty(id: String,
                               propertyEntry: YMapEntry,

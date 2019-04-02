@@ -14,7 +14,7 @@ case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends D
   def pluginVendor: StrField   = fields.field(PluginVendor)
 
   def withPluginFragment(fragment: String): PluginNodeMapping = set(PluginFragment, fragment)
-  def withPluginVendor(fragment: String): PluginNodeMapping   = set(PluginVendor, fragment)
+  def withPluginVendor(vendor: String): PluginNodeMapping   = set(PluginVendor, vendor)
 
   override def meta: Obj = PluginNodeMappingModel
   override def linkCopy(): Linkable = PluginNodeMapping().withId(id)

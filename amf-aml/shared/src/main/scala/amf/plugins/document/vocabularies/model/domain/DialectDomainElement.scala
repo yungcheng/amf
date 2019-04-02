@@ -18,12 +18,20 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
     extends DynamicDomainElement
     with Linkable {
 
+  // storage of a potential node parsed through a plugin, wrapped in this dialect domaine element
+  var pluginNode: Option[DomainElement]                                          = None
+  // Storage for default dialect domain elements
   val literalProperties: mutable.Map[String, Any]                                = mutable.HashMap()
   val linkProperties: mutable.Map[String, Any]                                   = mutable.HashMap()
   val mapKeyProperties: mutable.Map[String, Any]                                 = mutable.HashMap()
   val objectProperties: mutable.Map[String, DialectDomainElement]                = mutable.HashMap()
   val objectCollectionProperties: mutable.Map[String, Seq[DialectDomainElement]] = mutable.HashMap()
-  val propertyAnnotations: mutable.Map[String, Annotations]                      = mutable.HashMap()
+    val propertyAnnotations: mutable.Map[String, Annotations]                      = mutable.HashMap()
+
+  def withPluginNode(node: DomainElement)= {
+    pluginNode = Some(node)
+    this
+  }
 
   def isAbstract: BoolField = fields.field(meta.asInstanceOf[DialectDomainElementModel].Abstract)
   def withAbstract(isAbstract: Boolean): DialectDomainElement = {
@@ -45,12 +53,12 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   }
 
   // Dialect mapping defining the instance
-  protected var instanceDefinedBy: Option[NodeMapping] = None
-  def withDefinedBy(nodeMapping: NodeMapping): DialectDomainElement = {
+  protected var instanceDefinedBy: Option[NodeMappable] = None
+  def withDefinedBy(nodeMapping: NodeMappable): DialectDomainElement = {
     instanceDefinedBy = Some(nodeMapping)
     this
   }
-  def definedBy: NodeMapping = instanceDefinedBy match {
+  def definedBy: NodeMappable = instanceDefinedBy match {
     case Some(mapping) => mapping
     case None          => throw new Exception("NodeMapping for the instance not defined")
   }
@@ -100,14 +108,21 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
     }
      */
 
-    (mapKeyProperties.keys ++ literalProperties.keys ++ linkProperties.keys ++ objectProperties.keys ++ objectCollectionProperties.keys).flatMap {
-      propertyId =>
-        loadAnnotationsFromParsedFields(propertyId)
-        instanceDefinedBy.get.propertiesMapping().find(_.id == propertyId) match {
-          case Some(propertyMapping) => propertyMapping.toField
-          case _                     => throw new Exception(s"Cannot find properties mapping for property: $propertyId")
-        }
-    }.toList ++ fields
+    val defaultFields = instanceDefinedBy match {
+      case nodeMapping: NodeMapping =>
+        (mapKeyProperties.keys ++ literalProperties.keys ++ linkProperties.keys ++ objectProperties.keys ++ objectCollectionProperties.keys).flatMap {
+          propertyId =>
+            loadAnnotationsFromParsedFields(propertyId)
+            nodeMapping.propertiesMapping().find(_.id == propertyId) match {
+              case Some(propertyMapping) => propertyMapping.toField
+              case _                     => throw new Exception(s"Cannot find properties mapping for property: $propertyId")
+            }
+        }.toList
+      case _                        => // this is an plugin wrapper
+        List(Field(DomainElementModel, DialectDomainElementModel.PluginNodeProperty))
+
+    }
+    defaultFields ++ fields
       .fields()
       .filter(f => f.field != LinkableElementModel.Target && f.field != DomainElementModel.CustomDomainProperties)
       .map { entry =>
@@ -117,60 +132,77 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   }
 
   def findPropertyByTermPropertyId(termPropertyId: String): String =
-    definedBy
-      .propertiesMapping()
-      .find(_.nodePropertyMapping().value() == termPropertyId)
-      .map(_.id)
-      .getOrElse(termPropertyId)
+    definedBy match {
+      case nodeMapping: NodeMapping =>
+        nodeMapping.propertiesMapping()
+          .find(_.nodePropertyMapping().value() == termPropertyId)
+          .map(_.id)
+          .getOrElse(termPropertyId)
+      case _                         =>
+        termPropertyId
+    }
 
-  def findPropertyMappingByTermPropertyId(termPropertyId: String): Option[PropertyMapping] =
-    definedBy.propertiesMapping().find(_.nodePropertyMapping().value() == termPropertyId)
+  def findPropertyMappingByTermPropertyId(termPropertyId: String): Option[PropertyMapping] = {
+    definedBy match {
+      case nodeMapping: NodeMapping =>
+        nodeMapping.propertiesMapping().find(_.nodePropertyMapping().value() == termPropertyId)
+      case _                        =>
+        None
+    }
+  }
 
   override def valueForField(f: Field): Option[Value] = {
     val termPropertyId = f.value.iri()
-    val propertyId     = findPropertyByTermPropertyId(termPropertyId)
-    val annotations    = propertyAnnotations.getOrElse(propertyId, Annotations())
+    if (termPropertyId == DialectDomainElementModel.PluginNodeProperty.iri()) {
+      pluginNode.map(Value(_, Annotations()))
+    } else {
+      val propertyId  = findPropertyByTermPropertyId(termPropertyId)
+      val annotations = propertyAnnotations.getOrElse(propertyId, Annotations())
 
-    // Warning, mapKey has the term property id, no the property mapping id because
-    // there's no real propertyMapping for it
-    mapKeyProperties.get(propertyId) map { stringValue =>
-      AmfScalar(stringValue, annotations)
-    } orElse objectProperties.get(propertyId) map { dialectDomainElement =>
-      dialectDomainElement
-    } orElse {
-      objectCollectionProperties.get(propertyId) map { seqElements =>
-        AmfArray(seqElements, annotations)
+      // Warning, mapKey has the term property id, no the property mapping id because
+      // there's no real propertyMapping for it
+      mapKeyProperties.get(propertyId) map { stringValue =>
+        AmfScalar(stringValue, annotations)
+      } orElse objectProperties.get(propertyId) map { dialectDomainElement =>
+        dialectDomainElement
+      } orElse {
+        objectCollectionProperties.get(propertyId) map { seqElements =>
+          AmfArray(seqElements, annotations)
+        }
+      } orElse {
+        literalProperties.get(propertyId) map {
+          case vs: Seq[_] =>
+            val scalars = vs.map { s =>
+              AmfScalar(s)
+            }
+            AmfArray(scalars, annotations)
+          case other =>
+            AmfScalar(other, annotations)
+        }
+      } orElse {
+        linkProperties.get(propertyId) map {
+          case vs: Seq[_] =>
+            val scalars = vs.map { s =>
+              AmfScalar(s)
+            }
+            AmfArray(scalars, annotations)
+          case other =>
+            AmfScalar(other, annotations)
+        }
+      } map { amfElement =>
+        Value(amfElement, amfElement.annotations)
+      } orElse {
+        fields.fields().find(_.field == f).map(_.value)
       }
-    } orElse {
-      literalProperties.get(propertyId) map {
-        case vs: Seq[_] =>
-          val scalars = vs.map { s =>
-            AmfScalar(s)
-          }
-          AmfArray(scalars, annotations)
-        case other =>
-          AmfScalar(other, annotations)
-      }
-    } orElse {
-      linkProperties.get(propertyId) map {
-        case vs: Seq[_] =>
-          val scalars = vs.map { s =>
-            AmfScalar(s)
-          }
-          AmfArray(scalars, annotations)
-        case other =>
-          AmfScalar(other, annotations)
-      }
-    } map { amfElement =>
-      Value(amfElement, amfElement.annotations)
-    } orElse {
-      fields.fields().find(_.field == f).map(_.value)
     }
   }
 
   protected def propertyMappingForField(field: Field): Option[PropertyMapping] = {
     val iri = field.value.iri()
-    definedBy.propertiesMapping().find(_.nodePropertyMapping().value() == iri)
+    definedBy match {
+      case nodeMapping: NodeMapping => nodeMapping.propertiesMapping().find(_.nodePropertyMapping().value() == iri)
+      case _                        => None
+    }
   }
 
   def removeField(patchField: Field) = {

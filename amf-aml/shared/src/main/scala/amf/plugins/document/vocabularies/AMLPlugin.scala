@@ -132,6 +132,7 @@ object AMLPlugin
     DialectModel,
     NodeMappingModel,
     UnionNodeMappingModel,
+    PluginNodeMappingModel,
     PropertyMappingModel,
     DocumentsModelModel,
     PublicNodeMappingModel,

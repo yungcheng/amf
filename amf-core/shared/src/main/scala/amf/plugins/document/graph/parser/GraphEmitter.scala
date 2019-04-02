@@ -1,26 +1,14 @@
 package amf.plugins.document.graph.parser
 
-import amf.core.annotations._
 import amf.core.emitter.RenderOptions
-import amf.core.metamodel.Type.{Any, Array, Bool, EncodedIri, Iri, SortedArray, Str}
-import amf.core.metamodel.document.{ModuleModel, SourceMapModel}
-import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.domain.{DomainElementModel, LinkableElementModel, ShapeModel}
-import amf.core.metamodel.{Field, MetaModelTypeMapping, Obj, Type}
-import amf.core.model.document.{BaseUnit, SourceMap}
-import amf.core.model.domain.DataNodeOps.adoptTree
+import amf.core.model.document.BaseUnit
 import amf.core.model.domain._
-import amf.core.model.domain.extensions.DomainExtension
-import amf.core.parser.{Annotations, FieldEntry, Value}
 import amf.core.utils._
-import amf.core.vocabulary.{Namespace, ValueType}
-import amf.plugins.document.graph.AMFGraphPlugin.platform
-import org.mulesoft.common.time.SimpleDateTime
+import amf.core.vocabulary.Namespace
 import org.yaml.model.YDocument.{EntryBuilder, PartBuilder}
 import org.yaml.model._
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 /**
   * AMF Graph emitter

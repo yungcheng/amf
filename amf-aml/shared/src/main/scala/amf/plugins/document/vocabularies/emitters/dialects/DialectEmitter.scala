@@ -523,8 +523,9 @@ case class NodeMappingEmitter(dialect: Dialect,
       }
     } else {
       nodeMappable match {
-        case nodeMapping: NodeMapping           => emitSingleNode(b, nodeMapping)
-        case unionNodeMapping: UnionNodeMapping => emitUnioNode(b, unionNodeMapping)
+        case nodeMapping: NodeMapping             => emitSingleNode(b, nodeMapping)
+        case unionNodeMapping: UnionNodeMapping   => emitUnioNode(b, unionNodeMapping)
+        case pluginNodeMapping: PluginNodeMapping => emitPluginNode(b, pluginNodeMapping)
       }
     }
   }
@@ -553,6 +554,18 @@ case class NodeMappingEmitter(dialect: Dialect,
         nodeMapping.mergePolicy.option().foreach { policy =>
           b.entry("patch", policy)
         }
+      }
+    )
+  }
+
+  protected def emitPluginNode(b: EntryBuilder, pluginNodeMapping: PluginNodeMapping): Unit = {
+    b.entry(
+      pluginNodeMapping.name.value(),
+      _.obj { b =>
+        var emitters: Seq[EntryEmitter] = Seq()
+        b.entry("plugin", pluginNodeMapping.pluginVendor.value())
+        b.entry("fragment", pluginNodeMapping.pluginFragment.value())
+
       }
     )
   }

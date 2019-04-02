@@ -1,0 +1,19 @@
+#%Dialect 1.0
+dialect: Test
+version: "1.28a"
+external:
+  ns: http://test.com/ns#
+nodeMappings:
+  A:
+    classTerm: ns.A
+    mapping:
+      a:
+        propertyTerm: ns.a
+        range: string
+        mandatory: true
+      type:
+        proxy: %RAML 1.0 DataType
+        vendor: RAML 1.0
+documents:
+  root:
+    encodes: A

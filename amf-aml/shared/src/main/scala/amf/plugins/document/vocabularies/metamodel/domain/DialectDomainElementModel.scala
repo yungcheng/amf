@@ -5,14 +5,15 @@ import amf.core.metamodel.domain.{DomainElementModel, LinkableElementModel}
 import amf.core.metamodel.{DynamicObj, Field}
 import amf.core.model.domain.AmfObject
 import amf.core.vocabulary.{Namespace, ValueType}
-import amf.plugins.document.vocabularies.model.domain.NodeMapping
+import amf.plugins.document.vocabularies.model.domain.NodeMappable
 
 class DialectDomainElementModel(val typeIri: Seq[String] = Seq(),
                                 val typeFields: Seq[Field] = Nil,
-                                val nodeMapping: Option[NodeMapping] = None)
+                                val nodeMapping: Option[NodeMappable] = None)
     extends DomainElementModel
     with DynamicObj
     with LinkableElementModel {
+
 
   val DeclarationName = Field(Str, Namespace.Meta + "declarationName")
   val Abstract        = Field(Bool, Namespace.Meta + "abstract")
@@ -28,6 +29,9 @@ class DialectDomainElementModel(val typeIri: Seq[String] = Seq(),
 }
 
 object DialectDomainElementModel {
+
+  val PluginNodeProperty: ValueType = Namespace.Meta + "pluginNode"
+
   def apply(): DialectDomainElementModel = new DialectDomainElementModel()
   def apply(typeIri: String)             = new DialectDomainElementModel(Seq(typeIri))
 }

@@ -92,7 +92,12 @@ trait DialectSyntax { this: DialectContext =>
     "mapping"    -> false,
     "idProperty" -> false,
     "idTemplate" -> false,
-    "patch"      -> false
+    "patch"      -> false,
+  )
+
+  val pluginNodeMapping: Map[String, Boolean] = Map(
+    "plugin"     -> true,
+    "fragment"   -> true
   )
 
   val fragment: Map[String, Boolean] = Map(
@@ -137,6 +142,7 @@ trait DialectSyntax { this: DialectContext =>
       case "library"                 => library
       case "fragment"                => fragment
       case "nodeMapping"             => nodeMapping
+      case "pluginNodeMapping"       => pluginNodeMapping
       case "propertyMapping"         => propertyMapping
       case "documentsMapping"        => documentsMapping
       case "documentsMappingOptions" => documentsMappingOptions
@@ -490,12 +496,14 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
 
     adopt(pluginNodeMapping)
 
+    ctx.closedNode("pluginNodeMapping", pluginNodeMapping.id, map)
+
     map.key("plugin",
       entry => {
         entry.value.tagType match {
           case YType.Str =>
             try {
-              pluginNodeMapping.withPluginFragment(entry.value.as[String])
+              pluginNodeMapping.withPluginVendor(entry.value.as[String])
             } catch {
               case _: Exception =>
                 ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a vendor name string parseable by some AMF plugin", entry.value)
@@ -511,7 +519,14 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
         entry.value.tagType match {
           case YType.Str =>
             try {
-              pluginNodeMapping.withPluginFragment(entry.value.as[String])
+              val fragmentHeader = entry.value.as[String]
+              val normalilzedFragmentHeader = fragmentHeader.trim
+                if (normalilzedFragmentHeader.startsWith("#") || normalilzedFragmentHeader.startsWith("#%") || normalilzedFragmentHeader.startsWith("%")) {
+                  ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin header must start with the text, not '#' or '%'", entry.value)
+                } else {
+                  pluginNodeMapping.withPluginFragment(fragmentHeader)
+                }
+
             } catch {
               case _: Exception =>
                 ctx.violation(DialectError, pluginNodeMapping.id, s"Plugin node mappings must be declared with a fragment name string parseable by some AMF plugin", entry.value)

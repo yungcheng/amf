@@ -1,13 +1,13 @@
 package amf.client.model.domain
 
-import amf.client.convert.VocabulariesClientConverter
 import amf.client.convert.VocabulariesClientConverter._
 import amf.core.model.BoolField
-import amf.client.model.document.Dialect
 import amf.core.vocabulary.Namespace
-import amf.plugins.document.vocabularies.model.domain.{DialectDomainElement => InternalDialectDomainElement}
+import amf.plugins.document.vocabularies.model.domain.{DialectDomainElement => InternalDialectDomainElement, NodeMapping => InternalNodeMapping}
 import org.yaml.model.YNode
+
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
+
 @JSExportAll
 case class DialectDomainElement(override private[amf] val _internal: InternalDialectDomainElement)
     extends DomainElement {
@@ -31,7 +31,13 @@ case class DialectDomainElement(override private[amf] val _internal: InternalDia
     this
   }
 
-  def definedBy(): NodeMapping = NodeMapping(_internal.definedBy)
+  // TODO: FIXME
+  /*
+  def definedBy(): ClientOption[NodeMapping] = _internal.definedBy match {
+    case nodeMapping: InternalNodeMapping => Some(NodeMapping(nodeMapping)).asClient
+    case _                                => None.asClient
+  }
+  */
 
   def localRefName(): String = _internal.localRefName
 

@@ -83,7 +83,10 @@ class DialectPatchApplicationStage()(override implicit val errorHandler: ErrorHa
   }
 
   private def findNodeMergePolicy(element: DialectDomainElement): String =
-    element.definedBy.mergePolicy.option().getOrElse("update")
+    element.definedBy match  {
+      case nodeMapping: NodeMapping => nodeMapping.mergePolicy.option().getOrElse("update")
+      case _                        => "update"
+    }
   private def findPropertyMappingMergePolicy(property: PropertyMapping): String =
     property.mergePolicy.option().getOrElse("update")
 
@@ -378,21 +381,24 @@ class DialectPatchApplicationStage()(override implicit val errorHandler: ErrorHa
                               targetLocation: String,
                               patchNode: DialectDomainElement,
                               patchLocation: String): Option[DialectDomainElement] = {
-    val nodeMapping = patchNode.definedBy
-    if (targetNode.isDefined && sameNodeIdentity(targetNode.get, targetLocation, patchNode, patchLocation)) {
-      patchNode.meta.fields.foreach { patchField =>
-        patchNode.valueForField(patchField) match {
-          case Some(fieldValue) =>
-            nodeMapping
-              .propertiesMapping()
-              .find(_.nodePropertyMapping().option().getOrElse("") == patchField.value.iri()) match {
-              case Some(propertyMapping) =>
-                patchProperty(targetNode.get, patchField, fieldValue, propertyMapping, targetLocation, patchLocation)
+    patchNode.definedBy match {
+      case nodeMapping: NodeMapping =>
+        if (targetNode.isDefined && sameNodeIdentity(targetNode.get, targetLocation, patchNode, patchLocation)) {
+          patchNode.meta.fields.foreach { patchField =>
+            patchNode.valueForField(patchField) match {
+              case Some(fieldValue) =>
+                nodeMapping
+                  .propertiesMapping()
+                  .find(_.nodePropertyMapping().option().getOrElse("") == patchField.value.iri()) match {
+                  case Some(propertyMapping) =>
+                    patchProperty(targetNode.get, patchField, fieldValue, propertyMapping, targetLocation, patchLocation)
+                  case _ => // ignore
+                }
               case _ => // ignore
             }
-          case _ => // ignore
+          }
         }
-      }
+      case _                       => // ignore
     }
     targetNode
   }
