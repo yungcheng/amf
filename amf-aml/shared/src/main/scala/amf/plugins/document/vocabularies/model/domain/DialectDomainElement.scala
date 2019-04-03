@@ -5,7 +5,7 @@ import amf.core.metamodel.{Field, Obj, Type}
 import amf.core.model.{BoolField, StrField}
 import amf.core.model.domain._
 import amf.core.parser.{Annotations, Fields, Value}
-import amf.core.vocabulary.ValueType
+import amf.core.vocabulary.{Namespace, ValueType}
 import amf.plugins.document.vocabularies.metamodel.domain.DialectDomainElementModel
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.model.{YMap, YNode}
@@ -19,7 +19,8 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
     with Linkable {
 
   // storage of a potential node parsed through a plugin, wrapped in this dialect domaine element
-  var pluginNode: Option[DomainElement]                                          = None
+  val pluginProperties: mutable.Map[String, DomainElement]                      = mutable.HashMap()
+  val pluginCollectionProperties: mutable.Map[String, Seq[DomainElement]]       = mutable.HashMap()
   // Storage for default dialect domain elements
   val literalProperties: mutable.Map[String, Any]                                = mutable.HashMap()
   val linkProperties: mutable.Map[String, Any]                                   = mutable.HashMap()
@@ -27,11 +28,6 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   val objectProperties: mutable.Map[String, DialectDomainElement]                = mutable.HashMap()
   val objectCollectionProperties: mutable.Map[String, Seq[DialectDomainElement]] = mutable.HashMap()
     val propertyAnnotations: mutable.Map[String, Annotations]                      = mutable.HashMap()
-
-  def withPluginNode(node: DomainElement): DialectDomainElement = {
-    pluginNode = Some(node)
-    this
-  }
 
   def isAbstract: BoolField = fields.field(meta.asInstanceOf[DialectDomainElementModel].Abstract)
   def withAbstract(isAbstract: Boolean): DialectDomainElement = {
@@ -110,7 +106,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
 
     val defaultFields = instanceDefinedBy match {
       case Some(nodeMapping: NodeMapping) =>
-        (mapKeyProperties.keys ++ literalProperties.keys ++ linkProperties.keys ++ objectProperties.keys ++ objectCollectionProperties.keys).flatMap {
+        (mapKeyProperties.keys ++ literalProperties.keys ++ linkProperties.keys ++ objectProperties.keys ++ objectCollectionProperties.keys ++ pluginProperties.keys ++ pluginCollectionProperties.keys).flatMap {
           propertyId =>
             loadAnnotationsFromParsedFields(propertyId)
             nodeMapping.propertiesMapping().find(_.id == propertyId) match {
@@ -119,7 +115,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
             }
         }.toList
       case _                        => // this is an plugin wrapper
-        List(Field(DomainElementModel, DialectDomainElementModel.PluginNodeProperty))
+        List()
 
     }
     defaultFields ++ fields
@@ -153,47 +149,51 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
 
   override def valueForField(f: Field): Option[Value] = {
     val termPropertyId = f.value.iri()
-    if (termPropertyId == DialectDomainElementModel.PluginNodeProperty.iri()) {
-      pluginNode.orElse(Some(fields.field(f))).map(Value(_, Annotations()))
-    } else {
-      val propertyId  = findPropertyByTermPropertyId(termPropertyId)
-      val annotations = propertyAnnotations.getOrElse(propertyId, Annotations())
 
-      // Warning, mapKey has the term property id, no the property mapping id because
-      // there's no real propertyMapping for it
-      mapKeyProperties.get(propertyId) map { stringValue =>
-        AmfScalar(stringValue, annotations)
-      } orElse objectProperties.get(propertyId) map { dialectDomainElement =>
-        dialectDomainElement
-      } orElse {
-        objectCollectionProperties.get(propertyId) map { seqElements =>
-          AmfArray(seqElements, annotations)
-        }
-      } orElse {
-        literalProperties.get(propertyId) map {
-          case vs: Seq[_] =>
-            val scalars = vs.map { s =>
-              AmfScalar(s)
-            }
-            AmfArray(scalars, annotations)
-          case other =>
-            AmfScalar(other, annotations)
-        }
-      } orElse {
-        linkProperties.get(propertyId) map {
-          case vs: Seq[_] =>
-            val scalars = vs.map { s =>
-              AmfScalar(s)
-            }
-            AmfArray(scalars, annotations)
-          case other =>
-            AmfScalar(other, annotations)
-        }
-      } map { amfElement =>
-        Value(amfElement, amfElement.annotations)
-      } orElse {
-        fields.fields().find(_.field == f).map(_.value)
+    val propertyId  = findPropertyByTermPropertyId(termPropertyId)
+    val annotations = propertyAnnotations.getOrElse(propertyId, Annotations())
+
+    // Warning, mapKey has the term property id, no the property mapping id because
+    // there's no real propertyMapping for it
+    mapKeyProperties.get(propertyId) map { stringValue =>
+      AmfScalar(stringValue, annotations)
+    } orElse objectProperties.get(propertyId) map { dialectDomainElement =>
+      dialectDomainElement
+    } orElse {
+      objectCollectionProperties.get(propertyId) map { seqElements =>
+        AmfArray(seqElements, annotations)
       }
+    } orElse {
+      literalProperties.get(propertyId) map {
+        case vs: Seq[_] =>
+          val scalars = vs.map { s =>
+            AmfScalar(s)
+          }
+          AmfArray(scalars, annotations)
+        case other =>
+          AmfScalar(other, annotations)
+      }
+    } orElse {
+      linkProperties.get(propertyId) map {
+        case vs: Seq[_] =>
+          val scalars = vs.map { s =>
+            AmfScalar(s)
+          }
+          AmfArray(scalars, annotations)
+        case other =>
+          AmfScalar(other, annotations)
+      }
+
+    } orElse pluginProperties.get(propertyId) map { domainElement =>
+      domainElement
+    } orElse {
+      pluginCollectionProperties.get(propertyId) map { domainElements =>
+        AmfArray(domainElements, annotations)
+      }
+    } map { amfElement =>
+      Value(amfElement, amfElement.annotations)
+    } orElse {
+      fields.fields().find(_.field == f).map(_.value)
     }
   }
 
@@ -227,29 +227,69 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
     linkProperties.contains(property.id)
   }
 
-  def setObjectField(property: PropertyMapping, value: DialectDomainElement, node: YNode): DialectDomainElement = {
-    objectProperties.put(property.id, value)
+  def setObjectField(property: PropertyMapping, value: DomainElement, node: YNode): DialectDomainElement = {
+    value match {
+      case dialectElement: DialectDomainElement =>
+        objectProperties.put(property.id, dialectElement)
+      case domainElemet                         =>
+        pluginProperties.put(property.id, domainElemet)
+    }
+
     propertyAnnotations.put(property.id, Annotations(node))
-    if (value.isUnresolved) {
-      value.toFutureRef {
-        case resolvedDialectDomainElement: DialectDomainElement =>
-          objectProperties.put(
-            property.id,
-            resolveUnreferencedLink(value.refName,
-                                    value.annotations,
-                                    resolvedDialectDomainElement,
-                                    value.supportsRecursion.option().getOrElse(false))
-              .withId(value.id)
-          )
-        case resolved =>
-          throw new Exception(s"Cannot resolve reference with not dialect domain element value ${resolved.id}")
-      }
+
+    value match {
+      case linkable: Linkable =>
+        if (linkable.isUnresolved) {
+          linkable.toFutureRef {
+            case resolvedDialectDomainElement: DialectDomainElement =>
+              val dialectElement = value.asInstanceOf[DialectDomainElement]
+              objectProperties.put(
+                property.id,
+                resolveUnreferencedLink(dialectElement.refName,
+                  dialectElement.annotations,
+                  resolvedDialectDomainElement,
+                  dialectElement.supportsRecursion.option().getOrElse(false))
+                  .withId(value.id)
+              )
+            case resolvedDomainElement: DomainElement =>
+              // TODO: Transform this into a proper name
+              // TODO: Normalize supports recursion
+              value.fields.fields().find(_.field.value.iri() == (Namespace.Schema + "name").iri()) match {
+                case Some(entry) if entry.value.isInstanceOf[AmfScalar] =>
+                  val name = entry.value.toString
+                  pluginProperties.put(
+                    property.id,
+                    resolveUnreferencedLink(name,
+                      value.annotations,
+                      resolvedDomainElement,
+                      true)
+                      .withId(value.id)
+                  )
+                case _         => // ignore
+              }
+            case resolved =>
+              throw new Exception(s"Cannot resolve reference with not dialect domain element value ${resolved.id}")
+          }
+        }
+      case _                  => // ignore
     }
     this
   }
 
-  def setObjectField(property: PropertyMapping, value: Seq[DialectDomainElement], node: YNode): DialectDomainElement = {
-    objectCollectionProperties.put(property.id, value)
+  def setObjectField(property: PropertyMapping, value: Seq[DomainElement], node: YNode): DialectDomainElement = {
+    // set values
+    value match {
+      case dialectElements: Seq[DialectDomainElement] =>
+        val dialectElements = value.asInstanceOf[Seq[DialectDomainElement]]
+        objectCollectionProperties.put(property.id, dialectElements)
+      case _                                          =>
+        pluginCollectionProperties.put(property.id, value)
+    }
+
+    // annotations
+    propertyAnnotations.put(property.id, Annotations(node))
+
+    // resolve links
     propertyAnnotations.put(property.id, Annotations(node))
     value.foreach {
       case linkable: Linkable if linkable.isUnresolved =>
@@ -265,11 +305,14 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
           } foreach {
             case updatedValues: Seq[DialectDomainElement] =>
               objectCollectionProperties.put(property.id, updatedValues)
+            case updatedValues: Seq[DomainElement] =>
+              pluginCollectionProperties.put(property.id, updatedValues)
             case _ => // ignore
           }
         })
       case _ => // ignore
     }
+
     this
   }
 

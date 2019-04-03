@@ -37,18 +37,14 @@ case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends D
     AMFPluginsRegistry.documentPluginForVendor(vendor)
   }
 
-  def parse(root: Root, ctx: DialectInstanceContext): Option[DialectDomainElement] = {
+  def parse(root: Root, ctx: DialectInstanceContext): Option[DomainElement] = {
     findSyntaxPlugin.find(_.canParse(root)) match {
       case Some(domainPlugin) =>
         val newCtx = ctx.copyWithSonsReferences()
         domainPlugin.parse(root, newCtx, platform, ParsingOptions()) match {
           case Some(baseUnit: EncodesModel) =>
             val parsed = baseUnit.encodes
-            val wrapper = DialectDomainElement()
-                     wrapper.withInstanceTypes(Seq(DialectDomainElementModel.PluginNodeClass.iri(), id))
-            wrapper.withPluginNode(parsed)
-            wrapper.withDefinedBy(this)
-            Some(wrapper)
+            Some(parsed)
           case _ =>
             None
         }

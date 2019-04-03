@@ -29,10 +29,6 @@ class DialectDomainElementModel(val typeIri: Seq[String] = Seq(),
 }
 
 object DialectDomainElementModel {
-
-  val PluginNodeProperty: ValueType = Namespace.Meta + "pluginNode"
-  val PluginNodeClass: ValueType = Namespace.Meta + "PluginNode"
-
   def apply(): DialectDomainElementModel = new DialectDomainElementModel()
   def apply(typeIri: String)             = new DialectDomainElementModel(Seq(typeIri))
 }

@@ -97,7 +97,7 @@ class DialectInstanceContext(var dialect: Dialect,
     this
   }
 
-  def registerJsonPointerDeclaration(pointer: String, declared: DialectDomainElement) =
+  def registerJsonPointerDeclaration(pointer: String, declared: DomainElement) =
     globalSpace.update(pointer, declared)
 
   def findJsonPointer(pointer: String): Option[DialectDomainElement] = globalSpace.get(pointer) match {
@@ -437,12 +437,14 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
               val declarationName = declarationEntry.key.as[YScalar].text
               val id              = pathSegment(declarationsId, List(declarationName))
               parseNode(declarationsId, id, declarationEntry.value, nodeMapping, Map()) match {
-                case Some(node) =>
+                case Some(node: DialectDomainElement) =>
                   // lookup by ref name
                   node.withDeclarationName(declarationName)
                   ctx.declarations.registerDialectDomainElement(declarationEntry.key, node)
                   // lookup by JSON pointer, absolute URI
                   ctx.registerJsonPointerDeclaration(id, node)
+                case Some(node: DomainElement)        =>
+                  ??? // TODO: deal with declarations here
                 case _ =>
                   ctx.violation(DialectError,
                                 id,
@@ -463,7 +465,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
     }
   }
 
-  protected def parseEncoded(dialectInstance: EncodesModel): Option[DialectDomainElement] = {
+  protected def parseEncoded(dialectInstance: EncodesModel): Option[DomainElement] = {
     Option(ctx.dialect.documents()) flatMap { documents: DocumentsModel =>
       Option(documents.root()) flatMap { mapping =>
         ctx.findNodeMapping(mapping.encoded().value()) match {
@@ -476,7 +478,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
     }
   }
 
-  protected def parseEncodedFragment(dialectInstanceFragment: DialectInstanceFragment): Option[DialectDomainElement] = {
+  protected def parseEncodedFragment(dialectInstanceFragment: DialectInstanceFragment): Option[DomainElement] = {
     Option(ctx.dialect.documents()) flatMap { documents: DocumentsModel =>
       documents.fragments().find { documentMapping =>
         root.parsed
@@ -504,8 +506,8 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                           ast: YNode,
                           mappable: NodeMappable,
                           additionalProperties: Map[String, Any],
-                          rootNode: Boolean = false): Option[DialectDomainElement] = {
-    val result: Option[DialectDomainElement] = ast.tagType match {
+                          rootNode: Boolean = false): Option[DomainElement] = {
+    val result: Option[DomainElement] = ast.tagType match {
       case YType.Map =>
         val nodeMap = ast.as[YMap]
         dispatchNodeMap(nodeMap) match {
@@ -559,7 +561,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
     }
     // if we are parsing a patch document we mark the node as abstract
     result match {
-      case Some(node) if ctx.isPatch =>
+      case Some(node: DialectDomainElement) if ctx.isPatch =>
         Some(node.withAbstract(true))
       case other => other
     }
@@ -569,7 +571,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                       path: Seq[String],
                       ast: YNode,
                       pluginMapping: PluginNodeMapping,
-                      additionalProperties: Map[String, Any]): Option[DialectDomainElement] = {
+                      additionalProperties: Map[String, Any]): Option[DomainElement] = {
     val fragment = pluginMapping.pluginFragment.value()
     val localDoc = YDocument(IndexedSeq(ast), root.location + "#" + path.mkString("/"))
     val localComment = YComment("%" + fragment.trim)
@@ -588,8 +590,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
 
     pluginMapping.parse(localRoot, ctx) match {
       case Some(wrapper) =>
-        val finalId = generateNodeId(wrapper, ast.as[YMap], path ++ Seq("pluginNode"), defaultId, pluginMapping, additionalProperties, false)
-        Some(wrapper.withId(finalId))
+        Some(wrapper)
       case _             =>
         val vendor = pluginMapping.pluginVendor.value().trim
         ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragment $fragment", ast)
@@ -892,8 +893,12 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
         case _ => None
       }
       parsedNode match {
-        case Some(dialectDomainElement) => Some(checkHashProperties(dialectDomainElement, property, keyEntry))
-        case None                       => None
+        case Some(dialectDomainElement: DialectDomainElement) =>
+          Some(checkHashProperties(dialectDomainElement, property, keyEntry))
+        case _                                                =>
+          ??? // throw new Exception("MAP KEY PROPERTIES NOT SUPPORTED FOR PLUGIN NODES") TODO
+        case None                                             =>
+          None
       }
     }
     node.setObjectField(property,
@@ -988,7 +993,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
     node.setObjectField(property, elems, propertyEntry.value)
   }
 
-  def checkDuplicated(dialectDomainElement: DialectDomainElement,
+  def checkDuplicated(dialectDomainElement: DomainElement,
                       elementNode: YNode,
                       idsMap: mutable.Map[String, Boolean]): Unit = {
     idsMap.get(dialectDomainElement.id) match {
@@ -1150,7 +1155,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                                 id: String,
                                 entry: YNode,
                                 mapping: NodeMappable,
-                                additionalProperties: Map[String, Any]): Option[DialectDomainElement] =
+                                additionalProperties: Map[String, Any]): Option[DomainElement] =
     parseNode(path, id, entry, mapping, additionalProperties)
 
   protected def dispatchNodeMap(nodeMap: YMap): String =
