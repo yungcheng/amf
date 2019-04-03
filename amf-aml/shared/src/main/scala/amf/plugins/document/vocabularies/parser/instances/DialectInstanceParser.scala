@@ -12,6 +12,7 @@ import amf.core.utils._
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.annotations.{AliasesLocation, CustomId, JsonPointerRef, RefInclude}
+import amf.plugins.document.vocabularies.metamodel.domain.DialectDomainElementModel
 import amf.plugins.document.vocabularies.model.document._
 import amf.plugins.document.vocabularies.model.domain._
 import amf.plugins.document.vocabularies.parser.common.{AnnotationsParser, SyntaxErrorReporter}
@@ -570,7 +571,6 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                       pluginMapping: PluginNodeMapping,
                       additionalProperties: Map[String, Any]): Option[DialectDomainElement] = {
     val fragment = pluginMapping.pluginFragment.value()
-    val vendor = pluginMapping.pluginVendor.value()
     val localDoc = YDocument(IndexedSeq(ast), root.location + "#" + path.mkString("/"))
     val localComment = YComment("%" + fragment.trim)
 
@@ -583,30 +583,18 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
       root.mediatype,
       root.references,
       InferredLinkReference,
-      root.raw
+      ast.toString()
     )
 
-    AMFPluginsRegistry.documentPluginForVendor(vendor).find(_.canParse(localRoot)) match {
-      case Some(domainPlugin) =>
-        val newCtx = ctx.copyWithSonsReferences()
-        domainPlugin.parse(localRoot, newCtx, platform, ParsingOptions()) match {
-          case Some(baseUnit: EncodesModel) => {
-            val parsed = baseUnit.encodes
-            val wrapper = DialectDomainElement()
-            wrapper.withPluginNode(parsed)
-            wrapper.withDefinedBy(pluginMapping)
-            Some(wrapper)
-          }
-          case _ => {
-            ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragmetn $fragment", ast)
-            None
-          }
-        }
-      case _                  =>
-        ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragmetn $fragment", ast)
+    pluginMapping.parse(localRoot, ctx) match {
+      case Some(wrapper) =>
+        val finalId = generateNodeId(wrapper, ast.as[YMap], path ++ Seq("pluginNode"), defaultId, pluginMapping, additionalProperties, false)
+        Some(wrapper.withId(finalId))
+      case _             =>
+        val vendor = pluginMapping.pluginVendor.value().trim
+        ctx.violation(DialectAmbiguousRangeSpecification, s"Cannot parse node with an unsupported plugin mapping: vendor $vendor and fragment $fragment", ast)
         None
     }
-
   }
 
 
@@ -1395,7 +1383,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                                nodeMap: YMap,
                                path: Seq[String],
                                defaultId: String,
-                               mapping: NodeMapping,
+                               mapping: NodeMappable,
                                additionalProperties: Map[String, Any],
                                rootNode: Boolean): String = {
     if (rootNode && ctx.dialect.documents().selfEncoded().option().getOrElse(false)) {
@@ -1403,12 +1391,15 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
     } else {
       if (nodeMap.key("$id").isDefined) {
         explicitNodeId(node, nodeMap, path, defaultId, mapping)
-      } else if (mapping.idTemplate.nonEmpty) {
-        templateNodeId(node, nodeMap, path, defaultId, mapping)
-      } else if (mapping.primaryKey().nonEmpty) {
-        primaryKeyNodeId(node, nodeMap, path, defaultId, mapping, additionalProperties)
       } else {
-        defaultId
+        mapping match {
+          case nodeMapping: NodeMapping if nodeMapping.idTemplate.nonEmpty   =>
+            templateNodeId(node, nodeMap, path, defaultId, nodeMapping)
+          case nodeMapping: NodeMapping if nodeMapping.primaryKey().nonEmpty =>
+            primaryKeyNodeId(node, nodeMap, path, defaultId, nodeMapping, additionalProperties)
+          case _                                                             =>
+            defaultId
+        }
       }
     }
   }
@@ -1417,7 +1408,7 @@ class DialectInstanceParser(root: Root)(implicit override val ctx: DialectInstan
                                nodeMap: YMap,
                                path: Seq[String],
                                defaultId: String,
-                               mapping: NodeMapping): String = {
+                               mapping: NodeMappable): String = {
     // explicit $id
     val entry = nodeMap.key("$id").get
     val rawId = entry.value.as[YScalar].text

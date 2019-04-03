@@ -1,14 +1,24 @@
 package amf.plugins.document.vocabularies.model.domain
+import amf.client.plugins.AMFDocumentPlugin
+import amf.core.Root
+import amf.core.client.ParsingOptions
+import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Obj
 import amf.core.model.StrField
+import amf.core.model.document.{EncodesModel, Fragment}
 import amf.core.model.domain.{DomainElement, Linkable}
 import amf.core.parser.{Annotations, Fields}
-import amf.plugins.document.vocabularies.metamodel.domain.PluginNodeMappingModel
+import amf.core.registries.AMFPluginsRegistry
+import amf.core.unsafe.PlatformSecrets
+import amf.plugins.document.vocabularies.metamodel.domain.{DialectDomainElementModel, PluginNodeMappingModel}
 import amf.plugins.document.vocabularies.metamodel.domain.PluginNodeMappingModel._
 import org.yaml.model.YMap
 import amf.core.utils._
+import amf.plugins.document.vocabularies.parser.instances.DialectInstanceContext
+import org.yaml.builder.YDocumentBuilder
+import org.yaml.model.YDocument.PartBuilder
 
-case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends DomainElement with Linkable with NodeMappable {
+case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends DomainElement with Linkable with NodeMappable with PlatformSecrets {
 
   def pluginFragment: StrField = fields.field(PluginFragment)
   def pluginVendor: StrField   = fields.field(PluginVendor)
@@ -21,6 +31,48 @@ case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends D
   override protected  def classConstructor: (Fields, Annotations) => Linkable with DomainElement = PluginNodeMapping.apply
   override def componentId: String = "/" + name.value().urlComponentEncoded
 
+  def findSyntaxPlugin: Seq[AMFDocumentPlugin] = {
+    val vendor = pluginVendor.value().trim
+
+    AMFPluginsRegistry.documentPluginForVendor(vendor)
+  }
+
+  def parse(root: Root, ctx: DialectInstanceContext): Option[DialectDomainElement] = {
+    findSyntaxPlugin.find(_.canParse(root)) match {
+      case Some(domainPlugin) =>
+        val newCtx = ctx.copyWithSonsReferences()
+        domainPlugin.parse(root, newCtx, platform, ParsingOptions()) match {
+          case Some(baseUnit: EncodesModel) =>
+            val parsed = baseUnit.encodes
+            val wrapper = DialectDomainElement()
+                     wrapper.withInstanceTypes(Seq(DialectDomainElementModel.PluginNodeClass.iri(), id))
+            wrapper.withPluginNode(parsed)
+            wrapper.withDefinedBy(this)
+            Some(wrapper)
+          case _ =>
+            None
+        }
+      case _                  =>
+        None
+    }
+  }
+
+  def emit(b: PartBuilder, domainElement: DomainElement) = {
+    val wrapperFragment = new Fragment {
+      override  val fields: Fields = Fields()
+      override  val annotations: Annotations = Annotations()
+    }
+    wrapperFragment.withEncodes(domainElement)
+    wrapperFragment.withLocation(domainElement.id + "_wrapper")
+    findSyntaxPlugin.find(_.canUnparse(wrapperFragment)) match {
+      case Some(documentPlugin) =>
+        val docBuilder = new YDocumentBuilder()
+        documentPlugin.emit(wrapperFragment, docBuilder)
+        b += docBuilder.result.node
+      case _                    =>
+        // ignore
+    }
+  }
 }
 
 

@@ -4,6 +4,7 @@ import amf.ProfileName
 import amf.client.plugins.{AMFDocumentPlugin, AMFPlugin, AMFValidationPlugin}
 import amf.core.annotations.{DeclaredElement, ExternalFragmentRef, InlineElement}
 import amf.core.emitter.RenderOptions
+import amf.core.metamodel.Obj
 import amf.core.metamodel.document.FragmentModel
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AnnotationGraphLoader
@@ -42,7 +43,7 @@ trait BaseWebApiPlugin extends AMFDocumentPlugin with AMFValidationPlugin with W
     */
   override val allowRecursiveReferences: Boolean = false
 
-  override def modelEntities: Seq[FragmentModel] = Seq(
+  override def modelEntities: Seq[Obj] = Seq(
     ExtensionModel,
     OverlayModel,
     DocumentationItemFragmentModel,

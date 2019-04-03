@@ -28,7 +28,7 @@ import amf._
 import org.yaml.model.YNode.MutRef
 import org.yaml.model.{YDocument, YNode}
 
-sealed trait RamlPlugin extends BaseWebApiPlugin {
+trait RamlPlugin extends BaseWebApiPlugin {
 
   override val vendors: Seq[String] = Seq(vendor.name, Raml.name)
 
@@ -71,7 +71,7 @@ sealed trait RamlPlugin extends BaseWebApiPlugin {
     }
   }
 
-  private def inlineExternalReferences(root: Root, ctx: ParserContext): Unit = {
+  protected def inlineExternalReferences(root: Root, ctx: ParserContext): Unit = {
     root.references.foreach { ref =>
       ref.unit match {
         case e: ExternalFragment => inlineFragment(ref.origin.refs, ref.ast, e.encodes, ref.unit.references, ctx)

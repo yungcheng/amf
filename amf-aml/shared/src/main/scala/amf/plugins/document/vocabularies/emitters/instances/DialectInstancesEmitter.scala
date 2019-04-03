@@ -6,13 +6,14 @@ import amf.core.emitter.SpecOrdering.Lexical
 import amf.core.emitter.{EntryEmitter, PartEmitter, SpecOrdering}
 import amf.core.metamodel.Field
 import amf.core.model.document.{BaseUnit, DeclaresModel}
-import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, AmfScalar}
+import amf.core.model.domain._
 import amf.core.parser.Position.ZERO
 import amf.core.parser.{Annotations, FieldEntry, Position, Value}
 import amf.core.utils._
 import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.annotations.{AliasesLocation, CustomId, JsonPointerRef, RefInclude}
 import amf.plugins.document.vocabularies.emitters.common.{ExternalEmitter, IdCounter}
+import amf.plugins.document.vocabularies.metamodel.domain.DialectDomainElementModel
 import amf.plugins.document.vocabularies.model.document._
 import amf.plugins.document.vocabularies.model.domain._
 import org.mulesoft.common.time.SimpleDateTime
@@ -305,6 +306,18 @@ case class DeclarationsGroupEmitter(declared: Seq[DialectDomainElement],
   }
 }
 
+case class PluginNodeEmitter(node: DomainElement,
+                             pluginNode: PluginNodeMapping,
+                             dialect: Dialect)
+  extends PartEmitter
+  with DialectEmitterHelper {
+
+  override def emit(b: PartBuilder): Unit =
+    pluginNode.emit(b, node)
+
+  override def position(): Position =
+    node.annotations.find(classOf[LexicalInformation]).map(_.range.start).getOrElse(ZERO)
+}
 case class DialectNodeEmitter(node: DialectDomainElement,
                               nodeMappable: NodeMappable,
                               instance: DialectInstance,
@@ -472,15 +485,19 @@ case class DialectNodeEmitter(node: DialectDomainElement,
                                 annotations: Option[Annotations]): Seq[EntryEmitter] =
     Seq(ArrayEmitter(key, FieldEntry(field, Value(array, annotations.getOrElse(array.annotations))), ordering))
 
-  protected def findAllNodeMappings(mappableId: String): Seq[NodeMapping] = {
+  protected def findAllNodeMappings(mappableId: String): Seq[NodeMappable] = {
     findNodeMappingById(mappableId) match {
-      case (_, nodeMapping: NodeMapping) => Seq(nodeMapping)
-      case (_, unionMapping: UnionNodeMapping) =>
+      case (_, nodeMapping: NodeMapping)             =>
+        Seq(nodeMapping)
+      case (_, unionMapping: UnionNodeMapping)       =>
         val mappables = unionMapping.objectRange() map { rangeId =>
           findNodeMappingById(rangeId.value())._2
         }
         mappables.collect { case nodeMapping: NodeMapping => nodeMapping }
-      case _ => Nil
+      case (_, pluginNodeMapping: PluginNodeMapping) =>
+        Seq(pluginNodeMapping)
+      case _                                         =>
+        Nil
     }
   }
 
@@ -509,28 +526,35 @@ case class DialectNodeEmitter(node: DialectDomainElement,
       val keyPropertyId = propertyMapping.mapKeyProperty().option()
 
       override def emit(b: EntryBuilder): Unit = {
-
         // collect the emitters for each element, based on the available mappings
-        val mappedElements: Map[DialectNodeEmitter, DialectDomainElement] =
-          elements.foldLeft(Map[DialectNodeEmitter, DialectDomainElement]()) {
+        val mappedElements: Map[PartEmitter, DomainElement] =
+          elements.foldLeft(Map[PartEmitter, DomainElement]()) {
             case (acc, dialectDomainElement: DialectDomainElement) =>
-              // Let's see if this element has a discriminator to add
-              nodeMappings.find(nodeMapping =>
-                dialectDomainElement.meta.`type`.map(_.iri()).contains(nodeMapping.nodetypeMapping.value())) match {
-                case Some(nextNodeMapping) =>
-                  val nodeEmitter = DialectNodeEmitter(
-                    dialectDomainElement,
-                    nextNodeMapping,
-                    instance,
-                    dialect,
-                    ordering,
-                    aliases,
-                    discriminator = discriminator.compute(dialectDomainElement),
-                    keyPropertyId = keyPropertyId
-                  )
-                  acc + (nodeEmitter -> dialectDomainElement)
-                case _ =>
-                  acc // TODO: raise violation
+              if (nodeMappings.forall(_.isInstanceOf[PluginNodeMapping])) {
+                val pluginNodeMapping = nodeMappings.head.asInstanceOf[PluginNodeMapping]
+                val pluginPropertyField = dialectDomainElement.meta.fields.find(_.value.iri() == DialectDomainElementModel.PluginNodeProperty.iri()).get
+                val domainElement = dialectDomainElement.valueForField(pluginPropertyField).get.value.asInstanceOf[DomainElement]
+                val nodeEmitter = PluginNodeEmitter(domainElement, pluginNodeMapping, dialect)
+                acc + (nodeEmitter -> dialectDomainElement)
+              } else {
+                // Let's see if this element has a discriminator to add
+                nodeMappings.find(nodeMapping =>
+                  dialectDomainElement.meta.`type`.map(_.iri()).contains(nodeMapping.asInstanceOf[NodeMapping].nodetypeMapping.value())) match {
+                  case Some(nextNodeMapping) =>
+                    val nodeEmitter = DialectNodeEmitter(
+                      dialectDomainElement,
+                      nextNodeMapping,
+                      instance,
+                      dialect,
+                      ordering,
+                      aliases,
+                      discriminator = discriminator.compute(dialectDomainElement),
+                      keyPropertyId = keyPropertyId
+                    )
+                    acc + (nodeEmitter -> dialectDomainElement)
+                  case _ =>
+                    acc // TODO: raise violation
+                }
               }
             case (acc, _) => acc
           }
@@ -547,28 +571,32 @@ case class DialectNodeEmitter(node: DialectDomainElement,
         }
       }
 
-      def emitMap(b: EntryBuilder, mapElements: Map[DialectNodeEmitter, DialectDomainElement]): Unit = {
+      def emitMap(b: EntryBuilder, mapElements: Map[PartEmitter, DomainElement]): Unit = {
         b.entry(
           key,
           _.obj { b =>
             ordering.sorted(mapElements.keys.toSeq).foreach { emitter =>
-              val dialectDomainElement = mapElements(emitter)
-              val mapKeyField =
-                dialectDomainElement.meta.fields.find(_.value.iri() == propertyMapping.mapKeyProperty().value()).get
-              val mapKeyValue = dialectDomainElement.valueForField(mapKeyField).get.toString
-              EntryPartEmitter(mapKeyValue, emitter).emit(b)
+              mapElements(emitter) match {
+                case dialectDomainElement: DialectDomainElement =>
+                  val mapKeyField =
+                    dialectDomainElement.meta.fields.find(_.value.iri() == propertyMapping.mapKeyProperty().value()).get
+                  val mapKeyValue = dialectDomainElement.valueForField(mapKeyField).get.toString
+                  EntryPartEmitter(mapKeyValue, emitter).emit(b)
+                case _ =>
+                  // ignore
+              }
             }
           }
         )
       }
 
-      def emitArray(b: EntryBuilder, mappedElements: Map[DialectNodeEmitter, DialectDomainElement]): Unit = {
+      def emitArray(b: EntryBuilder, mappedElements: Map[PartEmitter, DomainElement]): Unit = {
         b.entry(key, _.list { b =>
           ordering.sorted(mappedElements.keys.toSeq).foreach(_.emit(b))
         })
       }
 
-      def emitSingleElement(b: EntryBuilder, mappedElements: Map[DialectNodeEmitter, DialectDomainElement]): Unit = {
+      def emitSingleElement(b: EntryBuilder, mappedElements: Map[PartEmitter, DomainElement]): Unit = {
         mappedElements.keys.headOption.foreach { emitter =>
           EntryPartEmitter(key, emitter).emit(b)
         }

@@ -28,7 +28,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   val objectCollectionProperties: mutable.Map[String, Seq[DialectDomainElement]] = mutable.HashMap()
     val propertyAnnotations: mutable.Map[String, Annotations]                      = mutable.HashMap()
 
-  def withPluginNode(node: DomainElement)= {
+  def withPluginNode(node: DomainElement): DialectDomainElement = {
     pluginNode = Some(node)
     this
   }
@@ -109,7 +109,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
      */
 
     val defaultFields = instanceDefinedBy match {
-      case nodeMapping: NodeMapping =>
+      case Some(nodeMapping: NodeMapping) =>
         (mapKeyProperties.keys ++ literalProperties.keys ++ linkProperties.keys ++ objectProperties.keys ++ objectCollectionProperties.keys).flatMap {
           propertyId =>
             loadAnnotationsFromParsedFields(propertyId)
@@ -154,7 +154,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   override def valueForField(f: Field): Option[Value] = {
     val termPropertyId = f.value.iri()
     if (termPropertyId == DialectDomainElementModel.PluginNodeProperty.iri()) {
-      pluginNode.map(Value(_, Annotations()))
+      pluginNode.orElse(Some(fields.field(f))).map(Value(_, Annotations()))
     } else {
       val propertyId  = findPropertyByTermPropertyId(termPropertyId)
       val annotations = propertyAnnotations.getOrElse(propertyId, Annotations())
@@ -382,11 +382,13 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   }
 
   override def meta: Obj =
+  /*
     if (instanceTypes.isEmpty) {
       DialectDomainElementModel()
     } else {
-      new DialectDomainElementModel(instanceTypes.distinct, dynamicFields, Some(definedBy))
-    }
+  */
+    new DialectDomainElementModel(instanceTypes.distinct, dynamicFields, Some(definedBy))
+   // }
 
   override def adopted(newId: String): DialectDomainElement.this.type =
     if (Option(this.id).isEmpty) simpleAdoption(newId) else this

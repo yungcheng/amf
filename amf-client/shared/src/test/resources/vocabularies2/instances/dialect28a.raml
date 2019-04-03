@@ -12,8 +12,11 @@ nodeMappings:
         range: string
         mandatory: true
       type:
-        proxy: %RAML 1.0 DataType
-        vendor: RAML 1.0
+        propertyTerm: ns.type
+        range: Shape
+  Shape:
+    fragment: RAML 1.0 DataType
+    plugin: RAML 1.0 DataType
 documents:
   root:
     encodes: A

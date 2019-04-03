@@ -14,7 +14,7 @@ import amf.internal.environment.Environment
 import amf.internal.resource.StringResourceLoader
 import amf.plugins.document.vocabularies.metamodel.domain.DialectDomainElementModel
 import amf.plugins.document.vocabularies.model.document.{Dialect, DialectInstance}
-import amf.plugins.document.vocabularies.model.domain.{DialectDomainElement, NodeMapping, ObjectMapProperty}
+import amf.plugins.document.vocabularies.model.domain._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -57,13 +57,19 @@ class DialectsRegistry extends AMFDomainEntityResolver with PlatformSecrets {
 
   protected def headerKey(header: String): String = header.trim.replace(" ", "")
 
+  /**
+    * This is the actual logic that during emission find the right mapping for emission
+    * using the dialect node ID in the types of a dialect domain element
+    * @param typeString
+    * @return
+    */
   override def findType(typeString: String): Option[Obj] = {
     val foundMapping: Option[(Dialect, DomainElement)] = map.values.toSeq.distinct
       .collect {
         case dialect: Dialect =>
           dialect.declares.find {
-            case nodeMapping: NodeMapping => nodeMapping.id == typeString
-            case _                        => false
+            case nodeMapping: NodeMappable => nodeMapping.id == typeString
+            case _                         => false
           } map { nodeMapping =>
             (dialect, nodeMapping)
           }
@@ -71,9 +77,12 @@ class DialectsRegistry extends AMFDomainEntityResolver with PlatformSecrets {
       .collectFirst { case Some(x) => x }
 
     foundMapping match {
-      case Some((dialect: Dialect, nodeMapping: NodeMapping)) =>
+      case Some((dialect: Dialect, nodeMapping: NodeMapping))                    =>
         Some(buildMetaModel(nodeMapping, dialect))
-      case _ => None
+      case Some((dialect: Dialect, nodeMapping: PluginNodeMapping))              =>
+        Some(buildPluginMetaModel(nodeMapping))
+      case _                                                                     =>
+        None
     }
   }
 
@@ -112,6 +121,12 @@ class DialectsRegistry extends AMFDomainEntityResolver with PlatformSecrets {
 
     new DialectDomainElementModel(Seq(nodeType.value()), fields ++ mapPropertiesFields, Some(nodeMapping))
   }
+
+  def buildPluginMetaModel(pluginNodeMapping: PluginNodeMapping): Obj = {
+    val builder = DialectDomainElement().withDefinedBy(pluginNodeMapping)
+    builder.meta
+  }
+
 
   def registerDialect(uri: String, environment: Environment = Environment()): Future[Dialect] = {
     map.get(uri) match {

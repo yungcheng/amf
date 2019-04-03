@@ -1,8 +1,12 @@
 package amf.dialects
 
+import amf.core.client.ParsingOptions
+import amf.core.model.document.BaseUnit
+import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote._
 import amf.facades.{AMFCompiler, Validation}
 import amf.io.FunSuiteCycleTests
+import amf.plugins.document.RamlDataTypesPlugin
 import org.scalatest.Assertion
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -188,6 +192,10 @@ trait DialectInstancesParsingTest extends FunSuiteCycleTests {
     withDialect("dialect27.raml", "example27a.raml", "example27a.json", VocabularyYamlHint, Amf)
   }
 
+  test("parse 28a test") {
+    withDialect("dialect28a.raml", "example28a.raml", "example28a.json", VocabularyYamlHint, Amf)
+  }
+
   if (platform.name == "jvm") {
     test("generate 1 test") {
       withDialect("dialect1.raml",
@@ -339,6 +347,10 @@ trait DialectInstancesParsingTest extends FunSuiteCycleTests {
     withDialect("dialect27.raml", "example27a.json", "example27a.raml", AmfJsonHint, Aml)
   }
 
+  test("generate 28a test") {
+    withDialect("dialect28a.raml", "example28a.json", "example28a.raml", AmfJsonHint, Aml)
+  }
+
   test("Generate instance with invalid property terms") {
     withDialect(
       "/invalids/schema-uri/dialect.yaml",
@@ -349,6 +361,13 @@ trait DialectInstancesParsingTest extends FunSuiteCycleTests {
       enableValidation = true
     )
   }
+
+  /** Method to parse unit. Override if necessary. */
+  override def build(config: CycleConfig, given: Option[Validation], useAmfJsonldSerialisation: Boolean): Future[BaseUnit] = {
+    AMFPluginsRegistry.registerDocumentPlugin(RamlDataTypesPlugin)
+    super.build(config, given, useAmfJsonldSerialisation)
+  }
+
 
   protected def withDialect(dialect: String,
                             source: String,
