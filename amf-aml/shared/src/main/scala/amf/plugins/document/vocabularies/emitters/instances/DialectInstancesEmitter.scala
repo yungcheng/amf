@@ -10,6 +10,7 @@ import amf.core.model.domain._
 import amf.core.parser.Position.ZERO
 import amf.core.parser.{Annotations, FieldEntry, Position, Value}
 import amf.core.utils._
+import amf.core.vocabulary.Namespace
 import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.annotations.{AliasesLocation, CustomId, JsonPointerRef, RefInclude}
 import amf.plugins.document.vocabularies.emitters.common.{ExternalEmitter, IdCounter}
@@ -58,6 +59,7 @@ trait DialectEmitterHelper {
     val inDialectMapping = dialect.declares
       .find {
         case nodeMapping: NodeMappable => nodeMapping.id == nodeMappingId
+        case _                         => false
       }
       .map { nodeMapping =>
         (dialect, nodeMapping)
@@ -214,7 +216,7 @@ case class DialectInstancesEmitter(instance: DialectInstance, dialect: Dialect) 
   }
 }
 
-case class DeclarationsGroupEmitter(declared: Seq[DialectDomainElement],
+case class DeclarationsGroupEmitter(declared: Seq[DomainElement],
                                     publicNodeMapping: PublicNodeMapping,
                                     nodeMappable: NodeMappable,
                                     instance: DialectInstance,
@@ -226,17 +228,32 @@ case class DeclarationsGroupEmitter(declared: Seq[DialectDomainElement],
     extends EntryEmitter
     with DialectEmitterHelper {
 
-  def computeIdentifier(decl: DialectDomainElement) = {
-    decl.declarationName.option() match {
-      case Some(name) => name
-      case _ =>
-        decl.id
-          .split("#")
-          .last
-          .split("/")
-          .last
-          .urlDecoded // we are using the last part of the URL as the identifier in dialects
+  def computeIdentifier(elem: DomainElement) = {
+    elem match {
+      case decl: DialectDomainElement =>
+        decl.declarationName.option() match {
+          case Some(name) => name
+          case _ =>
+            decl.id
+              .split("#")
+              .last
+              .split("/")
+              .last
+              .urlDecoded // we are using the last part of the URL as the identifier in dialects
+        }
+      case decl: DomainElement        =>
+        decl.fields.fields().find(_.field.value.iri() == (Namespace.Schema + "name").iri()) match {
+          case Some(entry) => entry.value.value.toString
+          case _           =>
+            decl.id
+              .split("#")
+              .last
+              .split("/")
+              .last
+              .urlDecoded // we are using the last part of the URL as the identifier in dialects
+        }
     }
+
   }
 
   override def emit(b: EntryBuilder): Unit = {
@@ -255,14 +272,22 @@ case class DeclarationsGroupEmitter(declared: Seq[DialectDomainElement],
             b.entry(
               YNode(identifier),
               b => {
-                val discriminatorProperty = discriminator.flatMap(_.compute(decl))
-                DialectNodeEmitter(decl,
-                                   nodeMappable,
-                                   instance,
-                                   dialect,
-                                   ordering,
-                                   aliases,
-                                   discriminator = discriminatorProperty).emit(b)
+                decl match {
+                  case dialectDomainElement: DialectDomainElement =>
+                    val discriminatorProperty = discriminator.flatMap(_.compute(dialectDomainElement))
+                    DialectNodeEmitter(dialectDomainElement,
+                      nodeMappable,
+                      instance,
+                      dialect,
+                      ordering,
+                      aliases,
+                      discriminator = discriminatorProperty).emit(b)
+
+                  case pluginDomainElement: DomainElement if nodeMappable.isInstanceOf[PluginNodeMapping] =>
+                    PluginNodeEmitter(pluginDomainElement,
+                      nodeMappable.asInstanceOf[PluginNodeMapping],
+                      dialect).emit(b)
+                }
               }
             )
           }
@@ -295,7 +320,7 @@ case class DeclarationsGroupEmitter(declared: Seq[DialectDomainElement],
       .headOption
       .getOrElse(ZERO)
 
-  def sortedDeclarations(): Seq[DialectDomainElement] = {
+  def sortedDeclarations(): Seq[DomainElement] = {
     declared.sortBy(
       _.annotations
         .find(classOf[LexicalInformation])
@@ -333,8 +358,14 @@ case class DialectNodeEmitter(node: DialectDomainElement,
     extends PartEmitter
     with DialectEmitterHelper {
 
+  def isLink(node: DomainElement): Boolean = {
+    node match {
+      case linkable: Linkable => linkable.isLink
+      case _                  => false
+    }
+  }
   override def emit(b: PartBuilder): Unit = {
-    if (node.isLink) {
+    if (isLink(node)) {
       if (isFragment(node, instance)) emitLink(node).emit(b)
       else if (isLibrary(node, instance)) {
         emitLibrarRef(node, instance, b)
@@ -663,14 +694,19 @@ case class DialectNodeEmitter(node: DialectDomainElement,
     })
   }
 
-  def isFragment(elem: DialectDomainElement, instance: DialectInstance): Boolean = {
-    elem.linkTarget match {
-      case Some(domainElement) =>
-        instance.references.exists {
-          case ref: DialectInstanceFragment => ref.encodes.id == domainElement.id
-          case _                            => false
+  def isFragment(elem: DomainElement, instance: DialectInstance): Boolean = {
+    elem match {
+      case linkable: Linkable =>
+        linkable.linkTarget match {
+          case Some(domainElement) =>
+            instance.references.exists {
+              case ref: DialectInstanceFragment => ref.encodes.id == domainElement.id
+              case _                            => false
+            }
+          case _ => throw new Exception(s"Cannot check fragment for an element without target for element ${elem.id}")
         }
-      case _ => throw new Exception(s"Cannot check fragment for an element without target for element ${elem.id}")
+      case _                  =>
+        false
     }
   }
 
@@ -709,14 +745,20 @@ case class DialectNodeEmitter(node: DialectDomainElement,
         root.declaredNodes().foldLeft(Seq[EntryEmitter]()) {
           case (acc, publicNodeMapping) =>
             val publicMappings = findAllNodeMappings(publicNodeMapping.mappedNode().value()).map(_.id).toSet
-            val declared = instance.declares.collect {
+            // these are regular dialect domain elements
+            val declaredDialectElements = instance.declares.collect {
               case elem: DialectDomainElement if publicMappings.contains(elem.definedBy.id) => elem
             }
-            if (declared.nonEmpty) {
+            // these are potential domain elements parsed by a plugin
+            val domainElements = instance.declares.collect {
+              case elem: Linkable if !elem.isInstanceOf[DialectDomainElement] => elem
+            }
+            // Let's try to emit the dialect domain elements
+            if (declaredDialectElements.nonEmpty) {
               findNodeMappingById(publicNodeMapping.mappedNode().value()) match {
-                case (_, nodeMappable: NodeMappable) =>
+                case (_, nodeMappable: NodeMapping) =>
                   acc ++ Seq(
-                    DeclarationsGroupEmitter(declared,
+                    DeclarationsGroupEmitter(declaredDialectElements,
                                              publicNodeMapping,
                                              nodeMappable,
                                              instance,
@@ -724,6 +766,30 @@ case class DialectNodeEmitter(node: DialectDomainElement,
                                              ordering,
                                              docs.declarationsPath().option().getOrElse("/").split("/"),
                                              aliases))
+                case _                              =>
+                  acc
+              }
+            } else if(domainElements.nonEmpty) {
+              // and now we try to emit domain elements from plugins
+              findNodeMappingById(publicNodeMapping.mappedNode().value()) match {
+                case (_, pluginNodeMapping: PluginNodeMapping) =>
+                  val plugins = pluginNodeMapping.findSyntaxPlugin
+                  // we need to filter, otherwise we could emit domain elements generated by a different plugin
+                  val elementsForPlugin: Seq[DomainElement] = domainElements.filter { elem =>
+                    plugins.exists(_.modelEntities.exists(e => e == elem.meta))
+                  }
+                  acc ++ Seq(
+                    DeclarationsGroupEmitter(
+                      elementsForPlugin,
+                      publicNodeMapping,
+                      pluginNodeMapping,
+                      instance,
+                      dialect,
+                      ordering,
+                      docs.declarationsPath().option().getOrElse("/").split("/"),
+                      aliases))
+                case _                              =>
+                  acc
               }
             } else acc
         }

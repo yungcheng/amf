@@ -101,7 +101,7 @@ class RamlTypeExpressionParser(adopt: Shape => Shape, var i: Int = 0, ast: Optio
         case "time-only"     => ScalarShape().withDataType((Namespace.Xsd + "time").iri())
         case "date-only"     => ScalarShape().withDataType((Namespace.Xsd + "date").iri())
         case other =>
-          ctx.declarations
+          ctx.webApiDeclarations
             .findType(other, SearchScope.Named) match { // i should not have a reference to fragment in a type expression.
             case Some(s) => s.link(other).asInstanceOf[Shape]
             case _ =>

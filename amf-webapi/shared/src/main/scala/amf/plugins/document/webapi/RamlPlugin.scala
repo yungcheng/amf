@@ -49,7 +49,8 @@ trait RamlPlugin extends BaseWebApiPlugin {
   override def parse(root: Root,
                      parentContext: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = {
 
     val updated = context(parentContext, root)
     inlineExternalReferences(root, updated)

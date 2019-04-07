@@ -79,7 +79,7 @@ case class RamlMultipleExampleParser(key: String,
     map.key(key).foreach { entry =>
       ctx.link(entry.value) match {
         case Left(s) =>
-          examples += ctx.declarations.findNamedExampleOrError(entry.value)(s).link(s)
+          examples += ctx.webApiDeclarations.findNamedExampleOrError(entry.value)(s).link(s)
 
         case Right(node) =>
           node.tagType match {
@@ -107,7 +107,7 @@ case class RamlNamedExampleParser(entry: YMapEntry, producer: Option[String] => 
     val simpleProducer = () => producer(Some(name.text().toString))
     val example: Example = ctx.link(entry.value) match {
       case Left(s) =>
-        ctx.declarations
+        ctx.webApiDeclarations
           .findNamedExample(s)
           .map(e => e.link(s).asInstanceOf[Example])
           .getOrElse(RamlSingleExampleValueParser(entry, simpleProducer, options).parse())
@@ -126,7 +126,7 @@ case class RamlSingleExampleParser(key: String,
     map.key(key).flatMap { entry =>
       ctx.link(entry.value) match {
         case Left(s) =>
-          ctx.declarations.findNamedExample(s).map(e => e.link(s).asInstanceOf[Example]).foreach { example =>
+          ctx.webApiDeclarations.findNamedExample(s).map(e => e.link(s).asInstanceOf[Example]).foreach { example =>
             ctx.violation(
               NamedExampleUsedInExample,
               example.id,
@@ -193,7 +193,7 @@ case class RamlExampleValueAsString(node: YNode, example: Example, options: Exam
 
     val (targetNode, mutTarget) = node match {
       case mut: MutRef =>
-        ctx.declarations.fragments
+        ctx.webApiDeclarations.fragments
           .get(mut.origValue.asInstanceOf[YScalar].text)
           .foreach { e =>
             example.withReference(e.encoded.id)

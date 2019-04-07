@@ -48,6 +48,8 @@ class Example(override val fields: Fields, override val annotations: Annotations
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = Example.apply
   override protected def nameField: Field                                                       = Name
+
+  override def declarationNameProperty: String = Name.value.iri()
 }
 
 object Example {

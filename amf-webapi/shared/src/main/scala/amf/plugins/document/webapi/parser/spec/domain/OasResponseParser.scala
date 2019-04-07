@@ -25,7 +25,7 @@ case class OasResponseParser(entry: YMapEntry, adopted: Response => Unit)(implic
     val response: Response = ctx.link(entry.value) match {
       case Left(url) =>
         val name = OasDefinitions.stripResponsesDefinitionsPrefix(url)
-        val response: Response = ctx.declarations
+        val response: Response = ctx.webApiDeclarations
           .findResponseOrError(entry.value)(name, SearchScope.Named)
           .link(OasDefinitions.stripResponsesDefinitionsPrefix(url))
         adopted(response.set(ResponseModel.Name, node))

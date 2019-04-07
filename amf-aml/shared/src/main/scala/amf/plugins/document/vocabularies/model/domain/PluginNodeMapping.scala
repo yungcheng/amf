@@ -2,7 +2,6 @@ package amf.plugins.document.vocabularies.model.domain
 import amf.client.plugins.AMFDocumentPlugin
 import amf.core.Root
 import amf.core.client.ParsingOptions
-import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Obj
 import amf.core.model.StrField
 import amf.core.model.document.{EncodesModel, Fragment}
@@ -10,13 +9,13 @@ import amf.core.model.domain.{DomainElement, Linkable}
 import amf.core.parser.{Annotations, Fields}
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.unsafe.PlatformSecrets
-import amf.plugins.document.vocabularies.metamodel.domain.{DialectDomainElementModel, PluginNodeMappingModel}
-import amf.plugins.document.vocabularies.metamodel.domain.PluginNodeMappingModel._
-import org.yaml.model.YMap
 import amf.core.utils._
+import amf.plugins.document.vocabularies.metamodel.domain.PluginNodeMappingModel
+import amf.plugins.document.vocabularies.metamodel.domain.PluginNodeMappingModel._
 import amf.plugins.document.vocabularies.parser.instances.DialectInstanceContext
 import org.yaml.builder.YDocumentBuilder
 import org.yaml.model.YDocument.PartBuilder
+import org.yaml.model.YMap
 
 case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends DomainElement with Linkable with NodeMappable with PlatformSecrets {
 
@@ -41,7 +40,7 @@ case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends D
     findSyntaxPlugin.find(_.canParse(root)) match {
       case Some(domainPlugin) =>
         val newCtx = ctx.copyWithSonsReferences()
-        domainPlugin.parse(root, newCtx, platform, ParsingOptions()) match {
+        domainPlugin.parse(root, newCtx, platform, ParsingOptions(), inlined = true) match {
           case Some(baseUnit: EncodesModel) =>
             val parsed = baseUnit.encodes
             Some(parsed)
@@ -69,6 +68,8 @@ case class PluginNodeMapping(fields: Fields, annotations: Annotations) extends D
         // ignore
     }
   }
+
+  override def declarationNameProperty: String = Name.value.iri()
 }
 
 

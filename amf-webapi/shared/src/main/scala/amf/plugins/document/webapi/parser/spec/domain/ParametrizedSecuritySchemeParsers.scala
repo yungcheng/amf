@@ -31,7 +31,7 @@ case class RamlParametrizedSecuritySchemeParser(node: YNode, producer: String =>
       val name        = schemeEntry.key.as[YScalar].text
       val scheme      = producer(name).add(Annotations(node))
 
-      ctx.declarations.findSecurityScheme(name, SearchScope.Named) match {
+      ctx.webApiDeclarations.findSecurityScheme(name, SearchScope.Named) match {
         case Some(declaration) =>
           scheme.set(ParametrizedSecuritySchemeModel.Scheme, declaration)
 
@@ -61,7 +61,7 @@ case class RamlParametrizedSecuritySchemeParser(node: YNode, producer: String =>
       val name: String = node.as[YScalar].text
       val scheme       = producer(name).add(Annotations(node))
 
-      ctx.declarations.findSecurityScheme(name, SearchScope.Named) match {
+      ctx.webApiDeclarations.findSecurityScheme(name, SearchScope.Named) match {
         case Some(declaration) =>
           scheme.fields.setWithoutId(ParametrizedSecuritySchemeModel.Scheme, declaration, Annotations())
           scheme

@@ -35,8 +35,9 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
     this
   }
 
-  def declarationName: StrField = fields.field(meta.asInstanceOf[DialectDomainElementModel].DeclarationName)
-  def withDeclarationName(name: String): DialectDomainElement = {
+  override def declarationNameProperty: String = meta.asInstanceOf[DialectDomainElementModel].DeclarationName.value.iri()
+  override def declarationName: StrField = fields.field(meta.asInstanceOf[DialectDomainElementModel].DeclarationName)
+  override def withDeclarationName(name: String): DialectDomainElement = {
     set(meta.asInstanceOf[DialectDomainElementModel].DeclarationName, name)
     this
   }
@@ -456,6 +457,7 @@ case class DialectDomainElement(override val fields: Fields, annotations: Annota
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement =
     DialectDomainElement.apply
+
 }
 
 object DialectDomainElement {

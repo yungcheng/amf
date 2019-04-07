@@ -35,6 +35,8 @@ case class TemplatedLink(fields: Fields, annotations: Annotations) extends Domai
 
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = TemplatedLink.apply
+
+  override def declarationNameProperty: String = Name.value.iri()
 }
 
 object TemplatedLink {

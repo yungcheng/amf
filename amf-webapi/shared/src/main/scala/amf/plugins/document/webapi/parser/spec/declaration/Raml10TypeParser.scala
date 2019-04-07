@@ -44,7 +44,7 @@ object Raml10TypeParser {
             isAnnotation: Boolean = false,
             defaultType: DefaultType = StringDefaultType)(implicit ctx: RamlWebApiContext): Raml10TypeParser =
     new Raml10TypeParser(Left(entry), entry.key, adopt, isAnnotation, defaultType)(
-      new Raml10WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.declarations), ctx.eh))
+      new Raml10WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.webApiDeclarations), ctx.eh))
 
   def apply(node: YNode, name: String, adopt: Shape => Shape, defaultType: DefaultType)(
       implicit ctx: RamlWebApiContext): Raml10TypeParser =
@@ -142,12 +142,12 @@ object Raml08TypeParser {
   def apply(node: YNode, name: String, adopt: Shape => Shape, isAnnotation: Boolean, defaultType: DefaultType)(
       implicit ctx: RamlWebApiContext): Raml08TypeParser =
     new Raml08TypeParser(Right(node), name, adopt, isAnnotation, defaultType)(
-      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.declarations)))
+      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.webApiDeclarations)))
 
   def apply(entry: YMapEntry, adopt: Shape => Shape, isAnnotation: Boolean, defaultType: DefaultType)(
       implicit ctx: RamlWebApiContext): Raml08TypeParser =
     new Raml08TypeParser(Left(entry), entry.key, adopt, isAnnotation, defaultType)(
-      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.declarations)))
+      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.webApiDeclarations)))
 
   def apply(entryOrNode: Either[YMapEntry, YNode],
             name: String,
@@ -155,7 +155,7 @@ object Raml08TypeParser {
             isAnnotation: Boolean,
             defaultType: DefaultType)(implicit ctx: RamlWebApiContext): Raml08TypeParser =
     new Raml08TypeParser(entryOrNode, name, adopt, isAnnotation, defaultType)(
-      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.declarations)))
+      new Raml08WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(ctx.webApiDeclarations)))
 }
 
 case class Raml08TypeParser(entryOrNode: Either[YMapEntry, YNode],
@@ -212,14 +212,14 @@ case class Raml08TypeParser(entryOrNode: Either[YMapEntry, YNode],
 
   case class Raml08ReferenceParser(text: String, node: YNode, name: String)(implicit ctx: RamlWebApiContext) {
     def parse(): Some[AnyShape] = {
-      val shape: AnyShape = ctx.declarations.findType(text, SearchScope.All) match {
+      val shape: AnyShape = ctx.webApiDeclarations.findType(text, SearchScope.All) match {
         case Some(s: AnyShape) =>
           s.link(text, Annotations(node.value)).asInstanceOf[AnyShape].withName(name, s.name.annotations())
         case None =>
           val shape = UnresolvedShape(text, node).withName(text, Annotations())
           shape.withContext(ctx)
           adopt(shape)
-          if (!text.validReferencePath && ctx.declarations.libraries.keys.exists(_ == text.split("\\.").head)) {
+          if (!text.validReferencePath && ctx.webApiDeclarations.libraries.keys.exists(_ == text.split("\\.").head)) {
             ctx.violation(
               ChainedReferenceSpecification,
               shape.id,
@@ -646,12 +646,12 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
           val refTuple = ctx.link(node) match {
             case Left(key) =>
               (key,
-               ctx.declarations.findType(key,
+               ctx.webApiDeclarations.findType(key,
                                          SearchScope.Fragments,
                                          Some((s: String) => ctx.violation(InvalidFragmentType, shape.id, s, node))))
             case _ =>
               val text = node.as[YScalar].text
-              (text, ctx.declarations.findType(text, SearchScope.Named))
+              (text, ctx.webApiDeclarations.findType(text, SearchScope.Named))
           }
 
           refTuple match {
@@ -672,7 +672,7 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
                                               shouldLink = false).withName(text, nameAnnotations)
               unresolve.withContext(ctx)
               adopt(unresolve)
-              if (!text.validReferencePath && ctx.declarations.libraries.keys.exists(_ == text.split("\\.").head)) {
+              if (!text.validReferencePath && ctx.webApiDeclarations.libraries.keys.exists(_ == text.split("\\.").head)) {
                 ctx.violation(
                   ChainedReferenceSpecification,
                   shape.id,
@@ -1219,7 +1219,7 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
               case s if wellKnownType(s) =>
                 parseWellKnownTypeRef(s).withName(s, Annotations(entry.key)).adopted(shape.id)
               case s =>
-                ctx.declarations.findType(s, SearchScope.All) match {
+                ctx.webApiDeclarations.findType(s, SearchScope.All) match {
                   case Some(ancestor) => ancestor
                   case _              => unresolved(node, shape)
                 }
@@ -1257,7 +1257,7 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
           val text = entry.value.as[YScalar].text
           // it might be a named type
           // only search for named ref, ex Person: !include. We dont handle inherits from an anonymous type like type: !include
-          ctx.declarations.findType(text, SearchScope.All) match {
+          ctx.webApiDeclarations.findType(text, SearchScope.All) match {
             case Some(ancestor) =>
               checkSchemaInheritance(shape, Seq(ancestor), Range(entry.range))
               // set without ID!, we keep the ID of the referred element
@@ -1310,7 +1310,7 @@ sealed abstract class RamlTypeParser(entryOrNode: Either[YMapEntry, YNode],
           if (shape.fields.exists(LinkableElementModel.TargetId)) shape.set(LinkableElementModel.TargetId, k))
       )
       unresolvedShape.withContext(ctx)
-      if (!reference.validReferencePath && ctx.declarations.libraries.keys.exists(_ == reference.split("\\.").head)) {
+      if (!reference.validReferencePath && ctx.webApiDeclarations.libraries.keys.exists(_ == reference.split("\\.").head)) {
         ctx.violation(
           ChainedReferenceSpecification,
           unresolvedShape.id,

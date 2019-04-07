@@ -97,7 +97,7 @@ object ExtendsHelper {
 
     declarations(ctx, unit)
     referencesCollector.foreach {
-      case (alias, ref) => ctx.declarations.fragments += (alias -> FragmentRef(ref, None))
+      case (alias, ref) => ctx.webApiDeclarations.fragments += (alias -> FragmentRef(ref, None))
     }
 
     val mergeMissingSecuritySchemes = new ValidationsMerger {
@@ -109,8 +109,8 @@ object ExtendsHelper {
     val operation: Operation =
       RuntimeValidator.nestedValidation(mergeMissingSecuritySchemes) { // we don't emit validation here, final result will be validated after merging
         ctx.adapt(name) { ctxForTrait =>
-          (ctxForTrait.declarations.resourceTypes ++ ctxForTrait.declarations.traits).foreach { e =>
-            ctx.declarations += e._2
+          (ctxForTrait.webApiDeclarations.resourceTypes ++ ctxForTrait.webApiDeclarations.traits).foreach { e =>
+            ctx.webApiDeclarations += e._2
           }
           ctxForTrait.factory.operationParser(entry, _ => Operation(), true).parse()
         }
@@ -218,7 +218,7 @@ object ExtendsHelper {
 
     declarations(ctx, unit)
     referencesCollector.foreach {
-      case (alias, ref) => ctx.declarations.fragments += (alias -> FragmentRef(ref, None))
+      case (alias, ref) => ctx.webApiDeclarations.fragments += (alias -> FragmentRef(ref, None))
     }
 
     val mergeMissingSecuritySchemes = new ValidationsMerger {
@@ -229,8 +229,8 @@ object ExtendsHelper {
     }
     RuntimeValidator.nestedValidation(mergeMissingSecuritySchemes) { // we don't emit validation here, final result will be validated after mergin
       ctx.adapt(name) { ctxForTrait =>
-        (ctxForTrait.declarations.resourceTypes ++ ctxForTrait.declarations.traits).foreach { e =>
-          ctx.declarations += e._2
+        (ctxForTrait.webApiDeclarations.resourceTypes ++ ctxForTrait.webApiDeclarations.traits).foreach { e =>
+          ctx.webApiDeclarations += e._2
         }
         ctxForTrait.factory
           .endPointParser(entry, _ => EndPoint().withId(extensionId + "/applied"), None, collector, true)
@@ -293,7 +293,7 @@ object ExtendsHelper {
     model match {
       case d: DeclaresModel =>
         d.declares.foreach { declaration =>
-          ctx.declarations += declaration
+          ctx.webApiDeclarations += declaration
           processDeclaration(declaration, ctx, model)
         }
       case _ =>
@@ -304,18 +304,18 @@ object ExtendsHelper {
   private def nestedDeclarations(ctx: RamlWebApiContext, model: BaseUnit): Unit = {
     model.references.foreach {
       case f: Fragment =>
-        ctx.declarations += (f.location().getOrElse(f.id), f)
+        ctx.webApiDeclarations += (f.location().getOrElse(f.id), f)
         nestedDeclarations(ctx, f)
       case m: DeclaresModel =>
         model.annotations.find(classOf[Aliases]).getOrElse(Aliases(Set())).aliases.foreach {
           case (alias, (fullUrl, _)) =>
             // If the library alias is already in the context, skip it
-            if (m.id == fullUrl && !ctx.declarations.libraries.exists(_._1 == alias)) {
+            if (m.id == fullUrl && !ctx.webApiDeclarations.libraries.exists(_._1 == alias)) {
               val nestedCtx = new Raml10WebApiContext("", Nil, ParserContext(), eh = ctx.eh)
               m.declares.foreach { declaration =>
                 processDeclaration(declaration, nestedCtx, m)
               }
-              ctx.declarations.libraries += (alias -> nestedCtx.declarations)
+              ctx.webApiDeclarations.libraries += (alias -> nestedCtx.webApiDeclarations)
             }
         }
         nestedDeclarations(ctx, m)
@@ -341,19 +341,19 @@ object ExtendsHelper {
                   .asInstanceOf[DomainElement]
                   .id
                   .contains(model.location().getOrElse("")))
-            nestedCtx.declarations += declaration
+            nestedCtx.webApiDeclarations += declaration
             declaration match {
               // we recover the local alias we removed when resolving
               case element: NamedDomainElement if inContext.isDefined =>
                 val localName = inContext.get.name.value()
                 val realName  = element.name.value()
                 element.withName(localName)
-                nestedCtx.declarations += declaration
+                nestedCtx.webApiDeclarations += declaration
                 element.withName(realName)
               case _ =>
             }
         }
-      case _ => nestedCtx.declarations += declaration
+      case _ => nestedCtx.webApiDeclarations += declaration
     }
   }
 }

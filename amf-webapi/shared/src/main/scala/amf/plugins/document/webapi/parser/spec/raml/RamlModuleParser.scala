@@ -28,7 +28,7 @@ case class RamlModuleParser(root: Root)(implicit override val ctx: RamlWebApiCon
 
       UsageParser(rootMap, module).parse()
 
-      val declarables = ctx.declarations.declarables()
+      val declarables = ctx.webApiDeclarations.declarables()
       if (declarables.nonEmpty) module.withDeclares(declarables)
       if (references.references.nonEmpty) module.withReferences(references.solvedReferences())
     }

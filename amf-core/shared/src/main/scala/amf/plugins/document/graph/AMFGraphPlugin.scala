@@ -64,7 +64,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
     }
   }
 
-  override def parse(root: Root, ctx: ParserContext, platform: Platform, options: ParsingOptions): Option[BaseUnit] =
+  override def parse(root: Root, ctx: ParserContext, platform: Platform, options: ParsingOptions, inlined: Boolean = false): Option[BaseUnit] =
     root.parsed match {
       case parsed: SyamlParsedDocument =>
         Some(GraphParser(platform).parse(parsed.document, effectiveUnitUrl(root.location, options)))

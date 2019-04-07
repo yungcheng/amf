@@ -2,13 +2,15 @@ package amf.dialects
 
 import amf.core.model.document.BaseUnit
 import amf.core.parser.UnhandledErrorHandler
+import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote._
 import amf.facades.{AMFCompiler, Validation}
 import amf.io.{BuildCycleTests, FunSuiteCycleTests}
+import amf.plugins.document.RamlDataTypesPlugin
 import amf.plugins.document.vocabularies.AMLPlugin
 import org.scalatest.AsyncFunSuite
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait DialectInstanceTester { this: FunSuiteCycleTests =>
 
@@ -18,6 +20,7 @@ trait DialectInstanceTester { this: FunSuiteCycleTests =>
                             hint: Hint,
                             target: Vendor,
                             directory: String = basePath) = {
+    AMFPluginsRegistry.registerDocumentPlugin(RamlDataTypesPlugin)
     for {
       v   <- Validation(platform).map(_.withEnabledValidation(false))
       _   <- AMFCompiler(s"file://$directory/$dialect", platform, VocabularyYamlHint, v).build()
@@ -130,6 +133,10 @@ class DialectProductionTest extends FunSuiteCycleTests with DialectInstanceTeste
 
   test("Can parse activity deployments demo") {
     withDialect("dialect.yaml", "deployment.yaml", "deployment.json", VocabularyYamlHint, Amf, basePath + "deployments_demo/")
+  }
+
+  test("HERE_HERE Can parse AsyncAPI + RAML Types demo") {
+    withDialect("dialect.yaml", "slack.yaml", "slack.json", VocabularyYamlHint, Amf, basePath + "asyncapi_raml/")
   }
 
 }

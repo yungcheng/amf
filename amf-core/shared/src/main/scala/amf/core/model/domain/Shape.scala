@@ -17,6 +17,8 @@ import scala.collection.mutable
 abstract class Shape extends DomainElement with Linkable with NamedDomainElement {
 
   override protected def nameField: Field = Name
+  override def declarationNameProperty = Name.value.iri()
+
 // used at runtime during validation
   val closureShapes: mutable.Set[Shape] = mutable.Set()
 

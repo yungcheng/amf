@@ -156,7 +156,7 @@ class JsonSchemaPlugin extends AMFDocumentPlugin with PlatformSecrets {
     // Apparently, in a RAML 0.8 API spec the JSON Schema has a closure over the schemas declared in the spec...
     val inheritedDeclarations =
       if (parentContext.isInstanceOf[Raml08WebApiContext])
-        Some(parentContext.asInstanceOf[WebApiContext].declarations)
+        Some(parentContext.asInstanceOf[WebApiContext].webApiDeclarations)
       else None
 
     new JsonSchemaWebApiContext(url,
@@ -190,7 +190,8 @@ class JsonSchemaPlugin extends AMFDocumentPlugin with PlatformSecrets {
   override def parse(document: Root,
                      parentContext: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = {
 
     document.parsed match {
       case parsedDoc: SyamlParsedDocument =>

@@ -1,0 +1,666 @@
+#%AsyncAPI 1.2.0
+
+asyncapi: '1.2.0'
+info:
+  title: Slack Real Time Messaging API
+  version: '1.0.0'
+
+servers:
+  - url: https://slack.com/api/rtm.connect
+    scheme: https
+    schemeVersion: '1.1'
+
+security:
+  - token: []
+
+events:
+  receive:
+    - $ref: '#/components/messages/hello'
+    - $ref: '#/components/messages/connectionError'
+    - $ref: '#/components/messages/accountsChanged'
+    - $ref: '#/components/messages/botAdded'
+    - $ref: '#/components/messages/botChanged'
+    - $ref: '#/components/messages/channelArchive'
+    - $ref: '#/components/messages/channelCreated'
+    - $ref: '#/components/messages/channelDeleted'
+    - $ref: '#/components/messages/channelHistoryChanged'
+    - $ref: '#/components/messages/channelJoined'
+    - $ref: '#/components/messages/channelLeft'
+    - $ref: '#/components/messages/channelMarked'
+    - $ref: '#/components/messages/channelRename'
+    - $ref: '#/components/messages/channelUnarchive'
+    - $ref: '#/components/messages/commandsChanged'
+    - $ref: '#/components/messages/dndUpdated'
+    - $ref: '#/components/messages/dndUpdatedUser'
+    - $ref: '#/components/messages/emailDomainChanged'
+    - $ref: '#/components/messages/emojiRemoved'
+    - $ref: '#/components/messages/emojiAdded'
+    - $ref: '#/components/messages/fileChange'
+    - $ref: '#/components/messages/fileCommentAdded'
+    - $ref: '#/components/messages/fileCommentDeleted'
+    - $ref: '#/components/messages/fileCommentEdited'
+    - $ref: '#/components/messages/fileCreated'
+    - $ref: '#/components/messages/fileDeleted'
+    - $ref: '#/components/messages/filePublic'
+    - $ref: '#/components/messages/fileShared'
+    - $ref: '#/components/messages/fileUnshared'
+    - $ref: '#/components/messages/goodbye'
+    - $ref: '#/components/messages/groupArchive'
+    - $ref: '#/components/messages/groupClose'
+    - $ref: '#/components/messages/groupHistoryChanged'
+    - $ref: '#/components/messages/groupJoined'
+    - $ref: '#/components/messages/groupLeft'
+    - $ref: '#/components/messages/groupMarked'
+    - $ref: '#/components/messages/groupOpen'
+    - $ref: '#/components/messages/groupRename'
+    - $ref: '#/components/messages/groupUnarchive'
+    - $ref: '#/components/messages/imClose'
+    - $ref: '#/components/messages/imCreated'
+    - $ref: '#/components/messages/imMarked'
+    - $ref: '#/components/messages/imOpen'
+    - $ref: '#/components/messages/manualPresenceChange'
+    - $ref: '#/components/messages/memberJoinedChannel'
+    - $ref: '#/components/messages/message'
+  send:
+    - $ref: '#/components/messages/outgoingMessage'
+
+components:
+  securitySchemes:
+    token:
+      type: httpApiKey
+      name: token
+      in: query
+
+  schemas:
+    Attachment:
+      properties:
+        fallback: string
+        color: string
+        pretext: string
+        author_name: string
+        author_link: string
+        author_icon: string
+        title: string
+        title_link: string
+        text: string
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              title: string
+              value: string
+              short: boolean
+        image_url: string
+        thumb_url: string
+        footer: string
+        footer_icon: string
+        ts: number
+    EventType:
+      type: object
+      discriminator: type
+      properties:
+        type: string
+    HelloEventType:
+      type: EventType
+      discriminatorValue: hello
+    ErrorEventType:
+      type: EventType
+      discriminatorValue: error
+      properties:
+        code: number
+        msg: string
+    AccountsChangedEventType:
+      type: EventType
+      discriminatorValue: accounts_changed
+    BotEventType:
+      type: EventType
+      discriminatorValue: bot_event
+      properties:
+        id: string
+        app_id: string
+        name: string
+        icons:
+          type: object
+          additionalProperties: true
+    BotAddedEventType:
+      type: BotEventType
+      discriminatorValue: bot_added
+    BotChangedEventType:
+      type: BotEventType
+      discriminatorValue: bot_changed
+    ChannelEventType:
+      type: EventType
+      discriminatorValue: channel_event
+      properties:
+        channel: string
+        user: string
+    ChannelArchiveEventType:
+      type: EventType
+      discriminatorValue: channel_archive
+      properties:
+        channel: string
+        user: string
+    ChannelCreatedEventType:
+      type: EventType
+      discriminatorValue: channel_created
+      properties:
+        id: string
+        name: string
+        created: number
+        creator: string
+    ChannelDeletedEventType:
+      type: EventType
+      discriminatorValue: channel_deleted
+      properties:
+        channel: string
+    ChannelHistoryChangedEventType:
+      type: EventType
+      discriminatorValue: channel_history_changed
+      properties:
+        latest: string
+        ts: string
+        event_ts: string
+    ChannelJoinedEventType:
+      type: EventType
+      discriminatorValue: channel_joined
+      properties:
+        id: string
+        name: string
+        created: number
+        creator: string
+    ChannelLeftEventType:
+      type: EventType
+      discriminatorValue: channel_left
+      properties:
+        channel: string
+    ChannelMarkedEventType:
+      type: EventType
+      discriminatorValue: channel_marked
+      properties:
+        channel: string
+        ts: string
+    ChannelRenameEventType:
+      type: EventType
+      discriminatorValue: channel_rename
+      properties:
+        id: string
+        name: string
+        created: number
+    ChannelUnarchiveEventType:
+      type: EventType
+      discriminatorValue: channel_unarchive
+      properties:
+        channel: string
+        user: string
+    CommandsChangedEventType:
+      type: EventType
+      discriminatorValue: commands_changed
+      properties:
+        event_ts: string
+    DndUpdatedEventType:
+      type: EventType
+      discriminatorValue: dnd_updated
+      properties:
+        user: string
+        dnd_status:
+          properties:
+            dnd_enabled: boolean
+            next_dnd_start_ts: number
+            next_dnd_end_ts: number
+            snooze_enabled: boolean
+            snooze_endtime: number
+    DndUpdatedUserEventType:
+      type: EventType
+      discriminatorValue: dnd_udpated_user
+      properties:
+        dnd_enabled: boolean
+        next_dnd_start_ts: number
+        next_dnd_end_ts: number
+    EmailDomainChangedEventType:
+      type: EventType
+      discriminatorValue: email_domain_changed
+      properties:
+        email_domain: string
+        event_ts: string
+    EmojiRemovedEventType:
+      properties:
+        type:
+          type: string
+          enum: ['emoji_changed']
+        subtype:
+          type: string
+          enum: ['remove']
+        names: string[]
+        event_ts: string
+    EmojiAddedEventType:
+      properties:
+        type:
+          type: string
+          enum: ['emoji_changed']
+        subtype:
+          type: string
+          enum: ['add']
+        name: string
+        value: string
+        event_ts: string
+    FileEventType:
+      type: EventType
+      discriminatorValue: file_event
+      properties:
+        file_id: string
+        file:
+          properties:
+            id: string
+    FileChangeEventType:
+      type: FileEventType
+      discriminatorValue: file_change
+    FileCommentAddedEventType:
+      type: FileEventType
+      discriminatorValue: file_comment_added
+    FileCommentDeletedEventType:
+      type: FileEventType
+      discriminatorValue: file_comment_deleted
+    FileCommentEditedEventType:
+      type: FileEventType
+      discriminatorValue: file_comment_edited
+    FileCreatedEventType:
+      type: FileEventType
+      discriminatorValue: file_created
+    FileDeletedEventType:
+      type: FileEventType
+      discriminatorValue: file_deleted
+    FilePublicEventType:
+      type: FileEventType
+      discriminatorValue: file_public
+    FileSharedEventType:
+      type: FileEventType
+      discriminatorValue: file_shared
+    FileUnsharedEventType:
+      type: FileEventType
+      discriminatorValue: file_unshared
+    GoodbyeEventType:
+      type: EventType
+      discriminatorValue: goodbye
+    GroupArchiveEventType:
+      type: EventType
+      discriminatorValue: group_archive
+      properties:
+        channel: string
+    GroupCloseEventType:
+      type: EventType
+      discriminatorValue: group_close
+      properties:
+        user: string
+        channel: string
+    GroupHistoryChangedEventType:
+      type: EventType
+      discriminatorValue: group_history_changed
+      properties:
+        latest: string
+        ts: string
+        event_ts: string
+    GroupJoinedEventType:
+      type: EventType
+      discriminatorValue: group_joined
+      properties:
+        channel:
+          properties:
+            id: string
+            name: string
+            creator: string
+    GroupLeftEventType:
+      type: EventType
+      discriminatorValue: group_left
+      properties:
+        channel: string
+    GroupMarkedEventType:
+      type: EventType
+      discriminatorValue: group_marked
+      properties:
+        channel: string
+        ts: string
+    GroupOpenEventType:
+      type: EventType
+      discriminatorValue: group_open
+      properties:
+        user: string
+        channel: string
+    GroupRenameEventType:
+      type: EventType
+      discriminatorValue: group_rename
+      properties:
+        id: string
+        name: string
+        created: number
+    GroupUnarchiveEventType:
+      type: EventType
+      discriminatorValue: group_unarchive
+      properties:
+        channel: string
+        user: string
+    ImCloseEventType:
+      type: EventType
+      discriminatorValue: im_close
+      properties:
+        channel: string
+        user: string
+    ImCreatedEventType:
+      type: EventType
+      discriminatorValue: im_created
+      properties:
+        channel:
+          properties:
+            id: string
+            name: string
+            created: number
+            creator: string
+        user: string
+    ImMarkedEventType:
+      type: EventType
+      discriminatorValue: im_marked
+      properties:
+        channel: string
+        ts: string
+    ImOpenEventType:
+      type: EventType
+      discriminatorValue: im_open
+      properties:
+        channel: string
+        user: string
+    ManualPresenceChangeEventType:
+      type: EventType
+      discriminatorValue: manual_presence_change
+      properties:
+        presence: string
+    MemberJoinedChannelEventType:
+      type: EventType
+      discriminatorValue: member_joined_channel
+      properties:
+        user: string
+        channel: string
+        channel_type:
+          type: string
+          enum: ['C', 'G']
+        team: string
+        inviter: string
+    MemberLeftChannelEventType:
+      type: EventType
+      discriminatorValue: member_left_channel
+      properties:
+        user: string
+        channel: string
+        channel_type:
+          type: string
+          enum: ['C', 'G']
+        team: string
+    MessageEventType:
+      type: EventType
+      discriminatorValue: message
+      properties:
+        user: string
+        channel: string
+        text: string
+        ts: string
+        attachments: Attachment[]
+        edited:
+          properties:
+            user: string
+            ts: string
+    OutgoingMessageEventType:
+      type: EventType
+      discriminator: message
+      properties:
+        channel: string
+        text: string
+
+  messages:
+    hello:
+      summary: First event received upon connection.
+      payload:
+        $ref: "#/components/schemas/HelloEventType"
+
+    connectionError:
+      summary: Event received when a connection error happens.
+      payload:
+        $ref: "#/components/schemas/ErrorEventType"
+
+    accountsChanged:
+      summary: The list of accounts a user is signed into has changed.
+      payload:
+        $ref: "#/components/schemas/AccountsChangedEventType"
+
+    botAdded:
+      summary: A bot user was added.
+      payload:
+        $ref: "#/components/schemas/BotAddedEventType"
+
+    botChanged:
+      summary: A bot user was changed.
+      payload:
+        $ref: "#/components/schemas/BotChangedEventType"
+
+    channelArchive:
+      summary: A channel was archived.
+      payload:
+        $ref: "#/components/schemas/ChannelArchiveEventType"
+
+    channelCreated:
+      summary: A channel was created.
+      payload:
+        $ref: "#/components/schemas/ChannelCreatedEventType"
+
+    channelDeleted:
+      summary: A channel was deleted.
+      payload:
+        $ref: "#/components/schemas/ChannelDeletedEventType"
+
+    channelHistoryChanged:
+      summary: Bulk updates were made to a channel's history.
+      payload:
+        $ref: "#/components/schemas/ChannelHistoryChangedEventType"
+
+    channelJoined:
+      summary: You joined a channel.
+      payload:
+        $ref: "#/components/schemas/ChannelJoinedEventType"
+
+    channelLeft:
+      summary: You left a channel.
+      payload:
+        $ref: "#/components/schemas/ChannelLeftEventType"
+
+    channelMarked:
+      summary: Your channel read marker was updated.
+      payload:
+        $ref: "#/components/schemas/ChannelMarkedEventType"
+
+    channelRename:
+      summary: A channel was renamed.
+      payload:
+        $ref: "#/components/schemas/ChannelRenameEventType"
+
+    channelUnarchive:
+      summary: A channel was unarchived.
+      payload:
+        $ref: "#/components/schemas/ChannelUnarchiveEventType"
+
+    commandsChanged:
+      summary: A slash command has been added or changed.
+      payload:
+        $ref: "#/components/schemas/CommandsChangedEventType"
+
+    dndUpdated:
+      summary: Do not Disturb settings changed for the current user.
+      payload:
+        $ref: "#/components/schemas/DndUpdatedEventType"
+
+    dndUpdatedUser:
+      summary: Do not Disturb settings changed for a member.
+      payload:
+        $ref: "#/components/schemas/DndUpdatedUserEventType"
+
+    emailDomainChanged:
+      summary: The workspace email domain has changed.
+      payload:
+        $ref: "#/components/schemas/EmailDomainChangedEventType"
+
+    emojiRemoved:
+      summary: A custom emoji has been removed.
+      payload:
+        $ref: "#/components/schemas/EmojiRemovedEventType"
+
+    emojiAdded:
+      summary: A custom emoji has been added.
+      payload:
+        $ref: "#/components/schemas/EmojiAddedEventType"
+
+    fileChange:
+      summary: A file was changed.
+      payload:
+        $ref: "#/components/schemas/FileChangeEventType"
+
+    fileCommentAdded:
+      summary: A file comment was added.
+      payload:
+        $ref: "#/components/schemas/FileCommentAddedEventType"
+
+    fileCommentDeleted:
+      summary: A file comment was deleted.
+      payload:
+        $ref: "#/components/schemas/FileCommentDeletedEventType"
+
+    fileCommentEdited:
+      summary: A file comment was edited.
+      payload:
+        $ref: "#/components/schemas/FileCommentEditedEventType"
+
+    fileCreated:
+      summary: A file was created.
+      payload:
+        $ref: "#/components/schemas/FileCreatedEventType"
+
+    fileDeleted:
+      summary: A file was deleted.
+      payload:
+        $ref: "#/components/schemas/FileDeletedEventType"
+
+    filePublic:
+      summary: A file was made public.
+      payload:
+        $ref: "#/components/schemas/FilePublicEventType"
+
+    fileShared:
+      summary: A file was shared.
+      payload:
+        $ref: "#/components/schemas/FileSharedEventType"
+
+    fileUnshared:
+      summary: A file was unshared.
+      payload:
+        $ref: "#/components/schemas/FileUnsharedEventType"
+
+    goodbye:
+      summary: The server intends to close the connection soon.
+      payload:
+        $ref: "#/components/schemas/GoodbyeEventType"
+
+    groupArchive:
+      summary: A private channel was archived.
+      payload:
+        $ref: "#/components/schemas/GroupArchiveEventType"
+
+    groupClose:
+      summary: You closed a private channel.
+      payload:
+        $ref: "#/components/schemas/GroupCloseEventType"
+
+    groupHistoryChanged:
+      summary: Bulk updates were made to a private channel's history.
+      payload:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: ['group_history_changed']
+          latest:
+            type: string
+          ts:
+            type: string
+          event_ts:
+            type: string
+
+    groupJoined:
+      summary: You joined a private channel.
+      payload:
+        $ref: "#/components/schemas/GroupJoinedEventType"
+
+    groupLeft:
+      summary: You left a private channel.
+      payload:
+        $ref: "#/components/schemas/GroupLeftEventType"
+
+    groupMarked:
+      summary: A private channel read marker was updated.
+      payload:
+        $ref: "#/components/schemas/GroupMarkedEventType"
+
+    groupOpen:
+      summary: You opened a private channel.
+      payload:
+        $ref: "#/components/schemas/GroupOpenEventType"
+
+    groupRename:
+      summary: A private channel was renamed.
+      payload:
+        $ref: "#/components/schemas/GroupRenameEventType"
+
+    groupUnarchive:
+      summary: A private channel was unarchived.
+      payload:
+        $ref: "#/components/schemas/GroupUnarchiveEventType"
+
+    imClose:
+      summary: You closed a DM.
+      payload:
+        $ref: "#/components/schemas/ImCloseEventType"
+
+    imCreated:
+      summary: A DM was created.
+      payload:
+        $ref: "#/components/schemas/ImCreatedEventType"
+
+    imMarked:
+      summary: A direct message read marker was updated.
+      payload:
+        $ref: "#/components/schemas/ImMarkedEventType"
+
+    imOpen:
+      summary: You opened a DM.
+      payload:
+        $ref: "#/components/schemas/ImOpenEventType"
+
+    manualPresenceChange:
+      summary: You manually updated your presence.
+      payload:
+        $ref: "#/components/schemas/ManualPresenceChangeEventType"
+
+    memberJoinedChannel:
+      summary: A user joined a public or private channel.
+      payload:
+        $ref: "#/components/schemas/MemberJoinedChannelEventType"
+
+    memberLeftChannel:
+      summary: A user left a public or private channel.
+      payload:
+        $ref: "#/components/schemas/MemberLeftChannelEventType"
+
+    message:
+      summary: A message was sent to a channel.
+      payload:
+        $ref: "#/components/schemas/MessageEventType"
+
+    outgoingMessage:
+      summary: A message was sent to a channel.
+      payload:
+        $ref: "#/components/schemas/OutgoingMessageEventType"

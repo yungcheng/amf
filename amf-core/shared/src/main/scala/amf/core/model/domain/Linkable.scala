@@ -9,6 +9,22 @@ import amf.plugins.features.validation.ParserSideValidations.UnresolvedReference
 
 trait Linkable extends AmfObject { this: DomainElement with Linkable =>
 
+  def withDeclarationName(name: String) = {
+    meta.fields.find(_.value.iri() == declarationNameProperty) match {
+      case Some(nameField) => set(nameField, name)
+      case _               => // ignore
+    }
+    this
+  }
+
+  def declarationName(): StrField = {
+    meta.fields.find(_.value.iri() == declarationNameProperty) match {
+      case Some(nameField) => fields.field(nameField)
+      case _               => throw new Exception(s"Cannot find declaration name value/field for property ${}")
+    }
+  }
+
+  def declarationNameProperty: String
   def linkTarget: Option[DomainElement]    = Option(fields(LinkableElementModel.Target))
   var linkAnnotations: Option[Annotations] = None
   def supportsRecursion: BoolField         = fields.field(LinkableElementModel.SupportsRecursion)

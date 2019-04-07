@@ -89,7 +89,7 @@ abstract class OasDocumentParser(root: Root)(implicit val ctx: OasWebApiContext)
       .withEncodes(api)
       .adopted(root.location)
 
-    val declarable = ctx.declarations.declarables()
+    val declarable = ctx.webApiDeclarations.declarables()
     if (declarable.nonEmpty) document.withDeclares(declarable)
     if (references.references.nonEmpty) document.withReferences(references.solvedReferences())
 
@@ -215,7 +215,7 @@ abstract class OasDocumentParser(root: Root)(implicit val ctx: OasWebApiContext)
     }
 
     private def parseTarget(name: String, scheme: ParametrizedSecurityScheme, part: YPart): SecurityScheme = {
-      ctx.declarations.findSecurityScheme(name, SearchScope.All) match {
+      ctx.webApiDeclarations.findSecurityScheme(name, SearchScope.All) match {
         case Some(declaration) =>
           scheme.set(ParametrizedSecuritySchemeModel.Scheme, declaration)
           declaration
@@ -252,7 +252,7 @@ abstract class OasDocumentParser(root: Root)(implicit val ctx: OasWebApiContext)
     private def parseEndpoint(endpoint: EndPoint) =
       ctx.link(entry.value) match {
         case Left(value) =>
-          ctx.declarations.asts.get(value) match {
+          ctx.webApiDeclarations.asts.get(value) match {
             case Some(n) if n.tagType == YType.Map =>
               parseEndpointMap(endpoint, n.as[YMap])
             case Some(n) =>
@@ -316,7 +316,7 @@ abstract class OasDocumentParser(root: Root)(implicit val ctx: OasWebApiContext)
         entry =>
           ParametrizedDeclarationParser(entry.value,
                                         endpoint.withResourceType,
-                                        ctx.declarations.findResourceTypeOrError(entry.value))
+                                        ctx.webApiDeclarations.findResourceTypeOrError(entry.value))
             .parse()
       )
 
@@ -479,7 +479,7 @@ abstract class OasDocumentParser(root: Root)(implicit val ctx: OasWebApiContext)
           val traits = entry.value
             .as[Seq[YNode]]
             .map(value => {
-              ParametrizedDeclarationParser(value, operation.withTrait, ctx.declarations.findTraitOrError(value))
+              ParametrizedDeclarationParser(value, operation.withTrait, ctx.webApiDeclarations.findTraitOrError(value))
                 .parse()
             })
           if (traits.nonEmpty) operation.setArray(DomainElementModel.Extends, traits, Annotations(entry))
@@ -565,7 +565,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
                                                          customProperty
                                                            .withName(typeName)
                                                            .adopted(customProperties))
-            ctx.declarations += customProperty.add(DeclaredElement())
+            ctx.webApiDeclarations += customProperty.add(DeclaredElement())
           })
       }
     )
@@ -586,7 +586,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
               shape.adopted(typesPrefix)
             })(ctx).parse() match {
               case Some(shape) =>
-                ctx.declarations += shape.add(DeclaredElement())
+                ctx.webApiDeclarations += shape.add(DeclaredElement())
               case None =>
                 ctx.violation(UnableToParseShape,
                               NodeShape().adopted(typesPrefix).id,
@@ -603,7 +603,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
       "securityDefinitions",
       e => {
         e.value.as[YMap].entries.foreach { entry =>
-          ctx.declarations += SecuritySchemeParser(
+          ctx.webApiDeclarations += SecuritySchemeParser(
             entry,
             (scheme, name) => {
               scheme.set(ParametrizedSecuritySchemeModel.Name,
@@ -621,7 +621,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
       "securitySchemes".asOasExtension,
       e => {
         e.value.as[YMap].entries.foreach { entry =>
-          ctx.declarations += SecuritySchemeParser(
+          ctx.webApiDeclarations += SecuritySchemeParser(
             entry,
             (scheme, name) => {
               scheme.set(ParametrizedSecuritySchemeModel.Name,
@@ -655,7 +655,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
                               e)
                 parameter
             }
-            ctx.declarations.registerOasParameter(oasParameter)
+            ctx.webApiDeclarations.registerOasParameter(oasParameter)
 
           })
       }
@@ -670,7 +670,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
           .as[YMap]
           .entries
           .foreach(e => {
-            ctx.declarations +=
+            ctx.webApiDeclarations +=
               OasResponseParser(e, (r: Response) => r.adopted(parentPath).add(DeclaredElement()))
                 .parse()
           })
@@ -718,7 +718,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
                                         scalar: YScalar,
                                         adopt: CustomDomainProperty => Unit) {
     def parse(): CustomDomainProperty = {
-      ctx.declarations
+      ctx.webApiDeclarations
         .findAnnotation(scalar.text, SearchScope.All)
         .map { a =>
           val copied: CustomDomainProperty = a.link(scalar.text, Annotations(ast))
@@ -805,7 +805,7 @@ abstract class OasSpecParser(implicit ctx: OasWebApiContext) extends WebApiBaseS
           case YType.Map => RamlCreativeWorkParser(n).parse()
           case YType.Str =>
             val text = n.as[YScalar].text
-            ctx.declarations.findDocumentations(text, SearchScope.All) match {
+            ctx.webApiDeclarations.findDocumentations(text, SearchScope.All) match {
               case Some(doc) => doc.link(text, Annotations(n)).asInstanceOf[CreativeWork]
               case _ =>
                 val documentation = RamlCreativeWorkParser(YNode(YMap.empty)).parse()

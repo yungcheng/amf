@@ -34,11 +34,11 @@ case class RamlJsonSchemaExpression(key: YNode,
         val (path, extFragment) = ReferenceFragmentPartition(url)
         val fragment            = extFragment.map(_.stripPrefix("/definitions/").stripPrefix("definitions/"))
         fragment
-          .flatMap(ctx.declarations.findInExternalsLibs(path, _))
-          .orElse(ctx.declarations.findInExternals(path)) match {
+          .flatMap(ctx.webApiDeclarations.findInExternalsLibs(path, _))
+          .orElse(ctx.webApiDeclarations.findInExternals(path)) match {
           case Some(s) =>
             val shape = s.copyShape().withName(key.as[String])
-            ctx.declarations.fragments
+            ctx.webApiDeclarations.fragments
               .get(path)
               .foreach(e => shape.withReference(e.encoded.id + extFragment.getOrElse("")))
             if (shape.examples.nonEmpty) { // top level inlined shape, we don't want to reuse the ID, this must be an included JSON schema => EDGE CASE!
@@ -50,7 +50,7 @@ case class RamlJsonSchemaExpression(key: YNode,
             shape
           case _ if fragment.isDefined => // oas lib
             RamlExternalOasLibParser(ctx, origin.text, origin.valueAST, path).parse()
-            val shape = ctx.declarations.findInExternalsLibs(path, fragment.get) match {
+            val shape = ctx.webApiDeclarations.findInExternalsLibs(path, fragment.get) match {
               case Some(s) =>
                 s.copyShape().withName(key.as[String])
               case _ =>
@@ -63,7 +63,7 @@ case class RamlJsonSchemaExpression(key: YNode,
                 empty
 
             }
-            ctx.declarations.fragments
+            ctx.webApiDeclarations.fragments
               .get(path)
               .foreach(e => shape.withReference(e.encoded.id + extFragment.get))
 
@@ -71,10 +71,10 @@ case class RamlJsonSchemaExpression(key: YNode,
             shape
           case _ =>
             val shape = parseJsonShape(origin.text, key, origin.valueAST, adopt, value, origin.oriUrl)
-            ctx.declarations.fragments
+            ctx.webApiDeclarations.fragments
               .get(path)
               .foreach(e => shape.withReference(e.encoded.id))
-            ctx.declarations.registerExternalRef(path, shape)
+            ctx.webApiDeclarations.registerExternalRef(path, shape)
             shape.annotations += ParsedJSONSchema(origin.text.trim)
             shape
         }
@@ -128,7 +128,7 @@ case class RamlJsonSchemaExpression(key: YNode,
         Root(SyamlParsedDocument(schemaEntry), url, "application/json", Nil, InferredLinkReference, text))(
         jsonSchemaContext)
         .parseTypeDeclarations(schemaEntry.node.as[YMap], url + "#/definitions/")
-      val libraryShapes = jsonSchemaContext.declarations.shapes
+      val libraryShapes = jsonSchemaContext.webApiDeclarations.shapes
       val resolvedShapes = new ReferenceResolutionStage(false)(ctx)
         .resolveDomainElementSet[Shape](libraryShapes.values.toSeq)
 
@@ -142,7 +142,7 @@ case class RamlJsonSchemaExpression(key: YNode,
         case (s: AnyShape, None) => shapesMap += s.name.value -> s
       }
 
-      ctx.declarations.registerExternalLib(path, shapesMap.toMap)
+      ctx.webApiDeclarations.registerExternalLib(path, shapesMap.toMap)
     }
   }
 
@@ -152,7 +152,7 @@ case class RamlJsonSchemaExpression(key: YNode,
                              adopt: Shape => Shape,
                              value: YNode,
                              extLocation: Option[String]): AnyShape = {
-    val url = extLocation.flatMap(ctx.declarations.fragments.get).flatMap(_.location)
+    val url = extLocation.flatMap(ctx.webApiDeclarations.fragments.get).flatMap(_.location)
 
     val parser =
       if (url.isDefined)
@@ -246,7 +246,7 @@ case class RamlXmlSchemaExpression(key: YNode,
       origin.oriUrl
         .map(ReferenceFragmentPartition.apply) match {
         case Some((path, uri)) =>
-          val maybeRef = ctx.declarations.fragments
+          val maybeRef = ctx.webApiDeclarations.fragments
             .get(path)
           (maybeRef
              .map(_.encoded.id + uri.map(u => if (u.startsWith("/")) u else "/" + u).getOrElse("")),

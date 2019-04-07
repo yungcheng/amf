@@ -104,15 +104,15 @@ case class Raml10ParameterParser(entry: YMapEntry, adopted: Parameter => Unit, p
             parameter
           case _ => // we have a property type
             entry.value.to[YScalar] match {
-              case Right(ref) if ctx.declarations.findParameter(ref.text, scope).isDefined =>
-                ctx.declarations
+              case Right(ref) if ctx.webApiDeclarations.findParameter(ref.text, scope).isDefined =>
+                ctx.webApiDeclarations
                   .findParameter(ref.text, scope)
                   .get
                   .link(ref.text, Annotations(entry))
                   .asInstanceOf[Parameter]
                   .set(ParameterModel.Name, name.text())
-              case Right(ref) if ctx.declarations.findType(ref.text, scope).isDefined =>
-                val schema = ctx.declarations
+              case Right(ref) if ctx.webApiDeclarations.findType(ref.text, scope).isDefined =>
+                val schema = ctx.webApiDeclarations
                   .findType(ref.text,
                             scope,
                             Some((s: String) => ctx.violation(InvalidFragmentType, parameter.id, s, entry.value)))
@@ -437,13 +437,13 @@ case class OasParameterParser(entryOrNode: Either[YMapEntry, YNode], parentId: S
 
   protected def parseParameterRef(ref: YMapEntry, parentId: String): OasParameter = {
     val refUrl = OasDefinitions.stripParameterDefinitionsPrefix(ref.value)
-    ctx.declarations.findParameter(refUrl, SearchScope.All) match {
+    ctx.webApiDeclarations.findParameter(refUrl, SearchScope.All) match {
       case Some(param) =>
         val parameter: Parameter = param.link(refUrl, Annotations(map))
         parameter.withName(refUrl).adopted(parentId)
         OasParameter(parameter, Some(ref))
       case None =>
-        ctx.declarations.findPayload(refUrl, SearchScope.All) match {
+        ctx.webApiDeclarations.findPayload(refUrl, SearchScope.All) match {
           case Some(payload) =>
             OasParameter(payload.link(refUrl, Annotations(map)).asInstanceOf[Payload], Some(ref))
           case None =>

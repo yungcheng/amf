@@ -44,6 +44,8 @@ case class CustomDomainProperty(fields: Fields, annotations: Annotations)
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement =
     CustomDomainProperty.apply
   override protected def nameField: Field = Name
+
+  override def declarationNameProperty: String = Name.value.iri()
 }
 
 object CustomDomainProperty {

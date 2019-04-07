@@ -34,15 +34,15 @@ package object spec {
 
   // TODO oas2? raml10?
   def toOas(ctx: WebApiContext): OasWebApiContext = {
-    new Oas2WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(toOasDeclarations(ctx.declarations)), ctx.eh)
+    new Oas2WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(toOasDeclarations(ctx.webApiDeclarations)), ctx.eh)
   }
 
   def toOas(root: String, refs: Seq[ParsedReference], ctx: WebApiContext): OasWebApiContext = {
-    new Oas2WebApiContext(root, refs, ctx, Some(toOasDeclarations(ctx.declarations)), ctx.eh)
+    new Oas2WebApiContext(root, refs, ctx, Some(toOasDeclarations(ctx.webApiDeclarations)), ctx.eh)
   }
 
   def toRaml(ctx: WebApiContext): RamlWebApiContext = {
-    new Raml10WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(toRamlDeclarations(ctx.declarations)), ctx.eh)
+    new Raml10WebApiContext(ctx.rootContextDocument, ctx.refs, ctx, Some(toRamlDeclarations(ctx.webApiDeclarations)), ctx.eh)
   }
 
   private def toRamlDeclarations(ds: WebApiDeclarations) = {
@@ -71,11 +71,11 @@ package object spec {
     new JsonSchemaWebApiContext(ctx.rootContextDocument,
                                 ctx.refs,
                                 ctx,
-                                Some(toOasDeclarations(ctx.declarations)),
+                                Some(toOasDeclarations(ctx.webApiDeclarations)),
                                 ctx.eh)
   }
 
   def toJsonSchema(root: String, refs: Seq[ParsedReference], ctx: WebApiContext): OasWebApiContext = {
-    new JsonSchemaWebApiContext(root, refs, ctx, Some(toOasDeclarations(ctx.declarations)), ctx.eh)
+    new JsonSchemaWebApiContext(root, refs, ctx, Some(toOasDeclarations(ctx.webApiDeclarations)), ctx.eh)
   }
 }

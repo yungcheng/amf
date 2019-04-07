@@ -20,10 +20,12 @@ import org.yaml.model._
 
 import scala.collection.mutable
 
-class DialectDeclarations(var nodeMappings: Map[String, NodeMappable] = Map(),
+class DialectDeclarations(declarations: mutable.Map[String, DomainElement] = mutable.Map(),
                           errorHandler: Option[ErrorHandler],
                           futureDeclarations: FutureDeclarations)
-    extends VocabularyDeclarations(Map(), Map(), Map(), Map(), Map(), errorHandler, futureDeclarations) {
+    extends VocabularyDeclarations(declarations, Map(), Map(), Map(), Map(), errorHandler, futureDeclarations) {
+
+  def nodeMappings = declarations.asInstanceOf[mutable.Map[String, NodeMappable]]
 
   /** Get or create specified library. */
   override def getOrCreateLibrary(alias: String): DialectDeclarations = {
@@ -48,7 +50,7 @@ class DialectDeclarations(var nodeMappings: Map[String, NodeMappable] = Map(),
   }
 
   def findNodeMapping(key: String, scope: SearchScope.Scope): Option[NodeMappable] =
-    findForType(key, _.asInstanceOf[DialectDeclarations].nodeMappings, scope) collect {
+    findForType(key, _.asInstanceOf[DialectDeclarations].nodeMappings.toMap, scope) collect {
       case nm: NodeMappable => nm
     }
 
@@ -181,12 +183,12 @@ trait DialectSyntax { this: DialectContext =>
 }
 
 class DialectContext(private val wrapped: ParserContext, private val ds: Option[DialectDeclarations] = None)
-    extends ParserContext(wrapped.rootContextDocument, wrapped.refs, wrapped.futureDeclarations, wrapped.parserCount)
+    extends ParserContext(wrapped.rootContextDocument, wrapped.refs, wrapped.futureDeclarations, wrapped.parserCount, declarations = wrapped.declarations)
     with DialectSyntax
     with SyntaxErrorReporter {
 
-  val declarations: DialectDeclarations =
-    ds.getOrElse(new DialectDeclarations(errorHandler = Some(this), futureDeclarations = futureDeclarations))
+  val dialectDeclarations: DialectDeclarations =
+    ds.getOrElse(new DialectDeclarations(this.declarations, errorHandler = Some(this), futureDeclarations = futureDeclarations))
 
 }
 
@@ -195,27 +197,27 @@ case class ReferenceDeclarations(references: mutable.Map[String, Any] = mutable.
     references += (alias -> unit)
     unit match {
       case d: Vocabulary =>
-        ctx.declarations
+        ctx.dialectDeclarations
           .registerUsedVocabulary(alias, d) // to keep track of the uses: alias -> vocab, useful for annotations
-        val library = ctx.declarations.getOrCreateLibrary(alias)
+        val library = ctx.dialectDeclarations.getOrCreateLibrary(alias)
         d.declares.foreach {
           case prop: PropertyTerm => library.registerTerm(prop)
           case cls: ClassTerm     => library.registerTerm(cls)
         }
       case m: DeclaresModel =>
-        val library = ctx.declarations.getOrCreateLibrary(alias)
+        val library = ctx.dialectDeclarations.getOrCreateLibrary(alias)
         m.declares.foreach {
           case nodeMapping: NodeMappable => library.registerNodeMapping(nodeMapping)
           case decl                      => library += decl
         }
       case f: DialectFragment =>
-        ctx.declarations.fragments += (alias -> FragmentRef(f.encodes, f.location()))
+        ctx.dialectDeclarations.fragments += (alias -> FragmentRef(f.encodes, f.location()))
     }
   }
 
   def +=(external: External): Unit = {
     references += (external.alias.value()                 -> external)
-    ctx.declarations.externals += (external.alias.value() -> external)
+    ctx.dialectDeclarations.declarations += (external.alias.value() -> external)
   }
 
   def baseUnitReferences(): Seq[BaseUnit] =
@@ -330,12 +332,12 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
     val references =
       DialectsReferencesParser(dialect, map, root.references).parse(dialect.location().getOrElse(dialect.id))
 
-    if (ctx.declarations.externals.nonEmpty)
-      dialect.withExternals(ctx.declarations.externals.values.toSeq)
+    if (ctx.dialectDeclarations.externals.nonEmpty)
+      dialect.withExternals(ctx.dialectDeclarations.externals.values.toSeq)
 
     parseDeclarations(root, map)
 
-    val declarables = ctx.declarations.declarables()
+    val declarables = ctx.dialectDeclarations.declarables()
     declarables.foreach {
       case unionNodeMapping: UnionNodeMapping =>
         checkNodeMappableReferences(unionNodeMapping)
@@ -347,6 +349,8 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
         nodeMapping.propertiesMapping().foreach { propertyMapping =>
           checkNodeMappableReferences(propertyMapping)
         }
+
+      case _                        => // ignore
     }
 
     if (declarables.nonEmpty) dialect.withDeclares(declarables)
@@ -381,7 +385,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       if (nodeMappingRef.value() == (Namespace.Meta + "anyNode").iri()) {
         Some(nodeMappingRef.value())
       } else {
-        ctx.declarations.findNodeMapping(nodeMappingRef.value(), All) match {
+        ctx.dialectDeclarations.findNodeMapping(nodeMappingRef.value(), All) match {
           case Some(mapping) => Some(mapping.id)
           case _ =>
             ctx.missingPropertyRangeViolation(
@@ -404,7 +408,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       case Some(typeDiscriminators) =>
         val mapped = typeDiscriminators.foldLeft(Map[String, String]()) {
           case (acc, (nodeMappingRef, alias)) =>
-            ctx.declarations.findNodeMapping(nodeMappingRef, All) match {
+            ctx.dialectDeclarations.findNodeMapping(nodeMappingRef, All) match {
               case Some(mapping) => acc.updated(mapping.id, alias)
               case _ =>
                 ctx.missingPropertyRangeViolation(
@@ -436,9 +440,9 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
                 ctx.violation(DialectError, parent, s"Error only valid node mapping or union mapping can be declared", entry)
                 None
             }) match {
-              case Some(nodeMapping: NodeMapping)       => ctx.declarations += nodeMapping
-              case Some(nodeMapping: UnionNodeMapping)  => ctx.declarations += nodeMapping
-              case Some(nodeMapping: PluginNodeMapping) => ctx.declarations += nodeMapping
+              case Some(nodeMapping: NodeMapping)       => ctx.dialectDeclarations += nodeMapping
+              case Some(nodeMapping: UnionNodeMapping)  => ctx.dialectDeclarations += nodeMapping
+              case Some(nodeMapping: PluginNodeMapping) => ctx.dialectDeclarations += nodeMapping
               case None                                 => ctx.violation(DialectError, parent, s"Error parsing shape '$entry'", entry)
             }
           }
@@ -553,7 +557,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       entry => {
         val value       = ValueNode(entry.value)
         val classTermId = value.string().toString
-        ctx.declarations.findClassTerm(classTermId, SearchScope.All) match {
+        ctx.dialectDeclarations.findClassTerm(classTermId, SearchScope.All) match {
           case Some(classTerm) =>
             nodeMapping.withNodeTypeMapping(classTerm.id)
           case _ =>
@@ -601,7 +605,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       }
     )
 
-    parseAnnotations(map, nodeMapping, ctx.declarations)
+    parseAnnotations(map, nodeMapping, ctx.dialectDeclarations)
 
     Some(nodeMapping)
   }
@@ -623,10 +627,10 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       case YType.Str if entry.value.toOption[YScalar].isDefined =>
         val refTuple = ctx.link(entry.value) match {
           case Left(key) =>
-            (key, ctx.declarations.findNodeMapping(key, SearchScope.Fragments))
+            (key, ctx.dialectDeclarations.findNodeMapping(key, SearchScope.Fragments))
           case _ =>
             val text = entry.value.as[YScalar].text
-            (text, ctx.declarations.findNodeMapping(text, SearchScope.Named))
+            (text, ctx.dialectDeclarations.findNodeMapping(text, SearchScope.Named))
         }
         refTuple match {
           case (text: String, Some(s)) =>
@@ -647,10 +651,10 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       case YType.Include if entry.value.toOption[YScalar].isDefined =>
         val refTuple = ctx.link(entry.value) match {
           case Left(key) =>
-            (key, ctx.declarations.findNodeMapping(key, SearchScope.Fragments))
+            (key, ctx.dialectDeclarations.findNodeMapping(key, SearchScope.Fragments))
           case _ =>
             val text = entry.value.as[YScalar].text
-            (text, ctx.declarations.findNodeMapping(text, SearchScope.Named))
+            (text, ctx.dialectDeclarations.findNodeMapping(text, SearchScope.Named))
         }
         refTuple match {
           case (text: String, Some(s)) =>
@@ -683,7 +687,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       entry => {
         val value          = ValueNode(entry.value)
         val propertyTermId = value.string().toString
-        ctx.declarations.findPropertyTerm(propertyTermId, SearchScope.All) match {
+        ctx.dialectDeclarations.findPropertyTerm(propertyTermId, SearchScope.All) match {
           case Some(propertyTerm) =>
             propertyMapping.withNodePropertyMapping(propertyTerm.id)
           case _ =>
@@ -725,7 +729,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       "mapKey",
       entry => {
         val propertyTermId = ValueNode(entry.value).string().toString
-        ctx.declarations.findPropertyTerm(propertyTermId, All) match {
+        ctx.dialectDeclarations.findPropertyTerm(propertyTermId, All) match {
           case Some(term) => propertyMapping.withMapKeyProperty(term.id)
           case _ =>
             ctx.violation(DialectError,
@@ -755,7 +759,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
       "mapValue",
       entry => {
         val propertyTermId = ValueNode(entry.value).string().toString
-        ctx.declarations.findPropertyTerm(propertyTermId, All) match {
+        ctx.dialectDeclarations.findPropertyTerm(propertyTermId, All) match {
           case Some(term) => propertyMapping.withMapValueProperty(term.id)
           case _ =>
             ctx.violation(DialectError,
@@ -863,7 +867,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
 
     // TODO: check dependencies among properties
 
-    parseAnnotations(map, propertyMapping, ctx.declarations)
+    parseAnnotations(map, propertyMapping, ctx.dialectDeclarations)
 
     propertyMapping
   }
@@ -912,7 +916,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
           "encodes",
           entry => {
             val nodeId = entry.value.as[YScalar].text
-            ctx.declarations.findNodeMapping(nodeId, SearchScope.All) match {
+            ctx.dialectDeclarations.findNodeMapping(nodeId, SearchScope.All) match {
               case Some(nodeMapping) => Some(documentsMapping.withEncoded(nodeMapping.id))
               case _                 => None // TODO: violation here
             }
@@ -929,7 +933,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
                 val declarationMapping = PublicNodeMapping(declarationEntry)
                   .withName(declarationName)
                   .withId(parent + "/declaration/" + declarationName.urlComponentEncoded)
-                ctx.declarations.findNodeMapping(declarationId, SearchScope.All) match {
+                ctx.dialectDeclarations.findNodeMapping(declarationId, SearchScope.All) match {
                   case Some(nodeMapping) => Some(declarationMapping.withMappedNode(nodeMapping.id))
                   case _                 => None // TODO: violation here
                 }
@@ -953,7 +957,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
               val documentsMapping = DocumentMapping(fragmentEntry.value)
                 .withDocumentName(fragmentName)
                 .withId(parent + s"/fragments/${fragmentName.urlComponentEncoded}")
-              ctx.declarations.findNodeMapping(nodeId, SearchScope.All) match {
+              ctx.dialectDeclarations.findNodeMapping(nodeId, SearchScope.All) match {
                 case Some(nodeMapping) => Some(documentsMapping.withEncoded(nodeMapping.id))
                 case _ =>
                   ctx.missingTermViolation(nodeId, parent, fragmentEntry)
@@ -981,7 +985,7 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
               val declarationMapping = PublicNodeMapping(declarationEntry)
                 .withName(declarationName)
                 .withId(parent + "/modules/" + declarationName.urlComponentEncoded)
-              ctx.declarations.findNodeMapping(declarationId, SearchScope.All) match {
+              ctx.dialectDeclarations.findNodeMapping(declarationId, SearchScope.All) match {
                 case Some(nodeMapping) => Some(declarationMapping.withMappedNode(nodeMapping.id))
                 case _ =>
                   ctx.missingTermViolation(declarationId, parent, libraryEntry)
@@ -1055,12 +1059,12 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
     val references =
       DialectsReferencesParser(dialect, map, root.references).parse(dialect.location().getOrElse(dialect.id))
 
-    if (ctx.declarations.externals.nonEmpty)
-      dialect.withExternals(ctx.declarations.externals.values.toSeq)
+    if (ctx.dialectDeclarations.externals.nonEmpty)
+      dialect.withExternals(ctx.dialectDeclarations.externals.values.toSeq)
 
     parseDeclarations(root, map)
 
-    val declarables = ctx.declarations.declarables()
+    val declarables = ctx.dialectDeclarations.declarables()
     declarables.foreach {
       case unionNodeMapping: UnionNodeMapping =>
         checkNodeMappableReferences(unionNodeMapping)
@@ -1119,8 +1123,8 @@ class DialectsParser(root: Root)(implicit override val ctx: DialectContext)
     val references =
       DialectsReferencesParser(dialect, map, root.references).parse(dialect.location().getOrElse(dialect.id))
 
-    if (ctx.declarations.externals.nonEmpty)
-      dialect.withExternals(ctx.declarations.externals.values.toSeq)
+    if (ctx.dialectDeclarations.externals.nonEmpty)
+      dialect.withExternals(ctx.dialectDeclarations.externals.values.toSeq)
 
     parseDeclarations(root, map)
 

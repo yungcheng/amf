@@ -26,7 +26,7 @@ case class ReferenceDeclarations(references: mutable.Map[String, BaseUnit] = mut
 
   def +=(alias: String, unit: BaseUnit): Unit = {
     references += (alias -> unit)
-    val library = ctx.declarations.getOrCreateLibrary(alias)
+    val library = ctx.webApiDeclarations.getOrCreateLibrary(alias)
     // todo : ignore domain entities of vocabularies?
     unit match {
       case d: DeclaresModel =>
@@ -36,7 +36,7 @@ case class ReferenceDeclarations(references: mutable.Map[String, BaseUnit] = mut
 
   def +=(url: String, fragment: Fragment): Unit = {
     references += (url       -> fragment)
-    ctx.declarations += (url -> fragment)
+    ctx.webApiDeclarations += (url -> fragment)
   }
 
   def +=(url: String, fragment: Document): Unit = references += (url -> fragment)

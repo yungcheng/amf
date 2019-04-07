@@ -94,7 +94,7 @@ case class RamlTypeDetector(parent: String,
           // it might be a named type
           // its for identify the type, so i can search in all the scope, no need to difference between named ref and includes.
 
-          ctx.declarations
+          ctx.webApiDeclarations
             .findType(scalar.text, SearchScope.All) match {
             case Some(ancestor) if recursive => ShapeClassTypeDefMatcher(ancestor, node, recursive)
             case Some(_) if !recursive       => Some(ObjectType)

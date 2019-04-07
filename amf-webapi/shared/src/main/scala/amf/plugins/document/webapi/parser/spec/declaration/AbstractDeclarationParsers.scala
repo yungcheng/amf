@@ -27,7 +27,7 @@ case class AbstractDeclarationsParser(key: String,
               .as[YMap]
               .entries
               .map(entry =>
-                ctx.declarations += AbstractDeclarationParser(producer(entry), customProperties, entry)
+                ctx.webApiDeclarations += AbstractDeclarationParser(producer(entry), customProperties, entry)
                   .parse())
           case YType.Null =>
           case t =>
@@ -90,8 +90,8 @@ case class AbstractDeclarationParser(declaration: AbstractDeclaration, parent: S
 
   def parseReferenced(declared: AbstractDeclaration, parsedUrl: String, ast: YPart): AbstractDeclaration = {
     val d: AbstractDeclaration = declared match {
-      case _: Trait        => ctx.declarations.findTraitOrError(ast)(parsedUrl, SearchScope.Fragments)
-      case _: ResourceType => ctx.declarations.findResourceTypeOrError(ast)(parsedUrl, SearchScope.Fragments)
+      case _: Trait        => ctx.webApiDeclarations.findTraitOrError(ast)(parsedUrl, SearchScope.Fragments)
+      case _: ResourceType => ctx.webApiDeclarations.findResourceTypeOrError(ast)(parsedUrl, SearchScope.Fragments)
     }
     val copied: AbstractDeclaration = d.link(parsedUrl, Annotations(ast))
     copied.withId(d.id)

@@ -3,16 +3,7 @@ package amf.plugins.document.webapi.parser.spec
 import amf.core.annotations.DeclaredElement
 import amf.core.model.domain.extensions.CustomDomainProperty
 import amf.core.model.domain.{DataNode, DomainElement, ObjectNode, Shape}
-import amf.core.parser.{
-  Annotations,
-  Declarations,
-  EmptyFutureDeclarations,
-  ErrorHandler,
-  Fields,
-  FragmentRef,
-  FutureDeclarations,
-  SearchScope
-}
+import amf.core.parser.{Annotations, Declarations, EmptyFutureDeclarations, ErrorHandler, Fields, FragmentRef, FutureDeclarations, SearchScope}
 import amf.plugins.document.webapi.model.DataTypeFragment
 import amf.plugins.document.webapi.parser.spec.WebApiDeclarations._
 import amf.plugins.document.webapi.parser.spec.domain.OasParameter
@@ -21,6 +12,8 @@ import amf.plugins.domain.webapi.models.security.SecurityScheme
 import amf.plugins.domain.webapi.models.templates.{ResourceType, Trait}
 import amf.plugins.domain.webapi.models.{EndPoint, Parameter, Payload, Response}
 import org.yaml.model.{YMap, YNode, YPart}
+
+import scala.collection.mutable
 
 /**
   * Declarations object.
@@ -36,9 +29,12 @@ class WebApiDeclarations(val alias: Option[String],
                          var traits: Map[String, Trait] = Map(),
                          var securitySchemes: Map[String, SecurityScheme] = Map(),
                          var responses: Map[String, Response] = Map(),
+                         val declarations: mutable.Map[String,DomainElement] = mutable.Map(),
                          val errorHandler: Option[ErrorHandler],
                          val futureDeclarations: FutureDeclarations)
     extends Declarations(libs, frags, anns, errorHandler, futureDeclarations = futureDeclarations) {
+
+  declarations.foreach { case (_, de) => this += de}
 
   def promoteExternaltoDataTypeFragment(text: String, fullRef: String, shape: Shape): Shape = {
     fragments.get(text) match {
@@ -88,36 +84,44 @@ class WebApiDeclarations(val alias: Option[String],
     val merged =
       new WebApiDeclarations(alias = alias,
                              errorHandler = errorHandler,
-                             futureDeclarations = EmptyFutureDeclarations())
+                             futureDeclarations = EmptyFutureDeclarations(),
+                             declarations = declarations)
     mergeParts(other, merged)
     merged
   }
 
   protected def addSchema(s: Shape) = {
     futureDeclarations.resolveRef(aliased(s.name.value()), s)
+    declarations += (s.name.value() -> s)
     shapes = shapes + (s.name.value() -> s)
   }
 
   override def +=(element: DomainElement): WebApiDeclarations = {
-    element match {
+      element match {
       case r: ResourceType =>
+        declarations += (r.name.value() -> r)
         futureDeclarations.resolveRef(aliased(r.name.value()), r)
         resourceTypes = resourceTypes + (r.name.value() -> r)
       case t: Trait =>
+        declarations += (t.name.value() -> t)
         futureDeclarations.resolveRef(aliased(t.name.value()), t)
         traits = traits + (t.name.value() -> t)
       case s: Shape =>
         addSchema(s)
       case p: Parameter =>
+        declarations += (p.name.value() -> p)
         futureDeclarations.resolveRef(aliased(p.name.value()), p)
         parameters = parameters + (p.name.value() -> p)
       case p: Payload =>
+        declarations += (p.name.value() -> p)
         futureDeclarations.resolveRef(aliased(p.name.value()), p)
         payloads = payloads + (p.name.value() -> p)
       case ss: SecurityScheme =>
+        declarations += (ss.name.value() -> ss)
         futureDeclarations.resolveRef(aliased(ss.name.value()), ss)
         securitySchemes = securitySchemes + (ss.name.value() -> ss)
       case re: Response =>
+        declarations += (re.name.value() -> re)
         futureDeclarations.resolveRef(aliased(re.name.value()), re)
         responses = responses + (re.name.value() -> re)
       case _ => super.+=(element)
@@ -398,8 +402,9 @@ class RamlWebApiDeclarations(var externalShapes: Map[String, AnyShape] = Map(),
                              var externalLibs: Map[String, Map[String, AnyShape]] = Map(),
                              override val alias: Option[String],
                              override val errorHandler: Option[ErrorHandler],
-                             override val futureDeclarations: FutureDeclarations)
-    extends WebApiDeclarations(alias, errorHandler = errorHandler, futureDeclarations = futureDeclarations) {
+                             override val futureDeclarations: FutureDeclarations,
+                             declarations: mutable.Map[String,DomainElement] = mutable.Map())
+    extends WebApiDeclarations(alias, errorHandler = errorHandler, futureDeclarations = futureDeclarations, declarations = declarations) {
 
   def registerExternalRef(external: (String, AnyShape)): WebApiDeclarations = { // particular case for jsonschema # fragment
     externalShapes = externalShapes + (external._1 -> external._2)

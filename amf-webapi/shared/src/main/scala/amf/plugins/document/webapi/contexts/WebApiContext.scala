@@ -79,8 +79,8 @@ abstract class RamlWebApiContext(override val loc: String,
 
   var globalMediatype: Boolean = false
 
-  override val declarations: RamlWebApiDeclarations = ds.getOrElse(
-    new RamlWebApiDeclarations(alias = None, errorHandler = Some(this), futureDeclarations = futureDeclarations))
+  override val webApiDeclarations: RamlWebApiDeclarations = ds.getOrElse(
+    new RamlWebApiDeclarations(alias = None, errorHandler = Some(this), futureDeclarations = futureDeclarations, declarations = wrapped.declarations))
   protected def clone(declarations: RamlWebApiDeclarations): RamlWebApiContext
 
   /**
@@ -89,8 +89,8 @@ abstract class RamlWebApiContext(override val loc: String,
     */
   def adapt[T](path: String)(k: RamlWebApiContext => T): T = {
     val pathElements        = path.split("\\.").dropRight(1)
-    val adaptedDeclarations = findDeclarations(pathElements, declarations)
-    k(clone(declarations.merge(adaptedDeclarations)))
+    val adaptedDeclarations = findDeclarations(pathElements, webApiDeclarations)
+    k(clone(webApiDeclarations.merge(adaptedDeclarations)))
   }
 
   protected def findDeclarations(path: Seq[String], declarations: RamlWebApiDeclarations): RamlWebApiDeclarations = {
@@ -188,7 +188,7 @@ class ExtensionLikeWebApiContext(loc: String,
                                  val parentDeclarations: RamlWebApiDeclarations)
     extends Raml10WebApiContext(loc, refs, wrapped, ds) {
 
-  override val declarations: ExtensionWebApiDeclarations =
+  override val webApiDeclarations: ExtensionWebApiDeclarations =
     ds match {
       case Some(dec) =>
         new ExtensionWebApiDeclarations(dec.externalShapes,
@@ -216,7 +216,7 @@ abstract class OasWebApiContext(loc: String,
                                 private val operationIds: mutable.Set[String] = mutable.HashSet())
     extends WebApiContext(loc, refs, wrapped, ds, eh) {
 
-  override val declarations: OasWebApiDeclarations =
+  override val webApiDeclarations: OasWebApiDeclarations =
     ds.getOrElse(
       new OasWebApiDeclarations(
         refs
@@ -287,15 +287,16 @@ abstract class WebApiContext(val loc: String,
                           refs,
                           wrapped.futureDeclarations,
                           parserCount = wrapped.parserCount,
-                          eh.orElse(wrapped.eh))
+                          eh.orElse(wrapped.eh),
+                          declarations = wrapped.declarations)
     with SpecAwareContext
     with PlatformSecrets {
 
   val syntax: SpecSyntax
   val vendor: Vendor
 
-  val declarations: WebApiDeclarations =
-    ds.getOrElse(new WebApiDeclarations(None, errorHandler = Some(this), futureDeclarations = futureDeclarations))
+  val webApiDeclarations: WebApiDeclarations =
+    ds.getOrElse(new WebApiDeclarations(None, errorHandler = Some(this), futureDeclarations = futureDeclarations, declarations = declarations))
 
   var localJSONSchemaContext: Option[YNode] = wrapped match {
     case wac: WebApiContext => wac.localJSONSchemaContext

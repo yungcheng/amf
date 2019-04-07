@@ -56,6 +56,8 @@ case class NodeMapping(fields: Fields, annotations: Annotations) extends DomainE
 
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = NodeMapping.apply
+
+  override def declarationNameProperty: String = Name.value.iri()
 }
 
 object NodeMapping {

@@ -2,7 +2,7 @@ package amf.core.parser
 
 import amf.core.annotations.{LexicalInformation, SourceLocation}
 import amf.core.model.document.BaseUnit
-import amf.core.model.domain.AmfObject
+import amf.core.model.domain.{AmfObject, DomainElement}
 import amf.core.services.RuntimeValidator
 import amf.core.utils.Strings
 import amf.core.validation.SeverityLevels.{VIOLATION, WARNING}
@@ -188,7 +188,8 @@ case class ParserContext(rootContextDocument: String = "",
                          refs: Seq[ParsedReference] = Seq.empty,
                          futureDeclarations: FutureDeclarations = EmptyFutureDeclarations(),
                          parserCount: Int = AMFCompilerRunCount.nextRun(),
-                         eh: Option[ErrorHandler] = None)
+                         eh: Option[ErrorHandler] = None,
+                         declarations: mutable.Map[String, DomainElement] = mutable.Map())
     extends ErrorHandler {
 
   var globalSpace: mutable.Map[String, Any] = mutable.Map()

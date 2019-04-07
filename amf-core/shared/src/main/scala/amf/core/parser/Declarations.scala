@@ -28,6 +28,7 @@ class Declarations(var libraries: Map[String, Declarations] = Map(),
       case a: CustomDomainProperty =>
         futureDeclarations.resolveRef(a.name.value(), a)
         annotations = annotations + (a.name.value() -> a)
+      case _                       => // ignore
     }
     this
   }

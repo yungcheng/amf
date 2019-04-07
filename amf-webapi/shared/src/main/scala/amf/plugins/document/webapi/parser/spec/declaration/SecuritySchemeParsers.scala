@@ -106,7 +106,7 @@ case class RamlSecuritySchemeParser(ast: YPart,
                       parsedUrl: String,
                       annotations: Annotations,
                       adopt: (SecurityScheme, String) => SecurityScheme): SecurityScheme = {
-    val scheme = ctx.declarations
+    val scheme = ctx.webApiDeclarations
       .findSecuritySchemeOrError(ast)(parsedUrl, SearchScope.All)
 
     val copied: SecurityScheme = scheme.link(parsedUrl, annotations)
@@ -413,7 +413,7 @@ case class OasSecuritySchemeParser(ast: YPart,
                       parsedUrl: String,
                       annotations: Annotations,
                       adopt: (SecurityScheme, String) => SecurityScheme): SecurityScheme = {
-    val scheme = ctx.declarations
+    val scheme = ctx.webApiDeclarations
       .findSecuritySchemeOrError(ast)(parsedUrl, SearchScope.Fragments)
 
     val copied: SecurityScheme = scheme.link(parsedUrl, annotations)

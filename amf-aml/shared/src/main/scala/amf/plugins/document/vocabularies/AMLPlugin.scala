@@ -188,7 +188,8 @@ object AMLPlugin
   override def parse(document: Root,
                      parentContext: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = {
     val maybeMetaText = comment(document) match {
       case Some(comment) => Some(comment.metaText)
       case _ =>

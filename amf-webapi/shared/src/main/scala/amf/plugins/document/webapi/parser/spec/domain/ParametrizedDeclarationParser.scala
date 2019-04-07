@@ -12,7 +12,7 @@ import org.yaml.model._
 object ParametrizedDeclarationParser {
   def parse(producer: String => ParametrizedDeclaration)(node: YNode)(
       implicit ctx: WebApiContext): ParametrizedDeclaration =
-    ParametrizedDeclarationParser(node, producer, ctx.declarations.findTraitOrError(node)).parse()
+    ParametrizedDeclarationParser(node, producer, ctx.webApiDeclarations.findTraitOrError(node)).parse()
 }
 
 case class ParametrizedDeclarationParser(

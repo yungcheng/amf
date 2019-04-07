@@ -69,13 +69,22 @@ object RamlDataTypesPlugin extends AMFDocumentPlugin with RamlPlugin with Platfo
   override def parse(root: Root,
                      parentContext: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = {
 
     val updated = context(parentContext, root)
     inlineExternalReferences(root, updated)
-    val clean = cleanContext(parentContext, root)
+    val finalContext = if (inlined) {
+      val clean = context(parentContext, root)
+      clean.globalSpace = parentContext.globalSpace
+      clean.reportDisambiguation = parentContext.reportDisambiguation
+      clean
+    } else {
+      cleanContext(parentContext, root)
+    }
 
-    RamlFragmentParser(root, Raml10DataType)(clean).parseFragment()
+
+    RamlFragmentParser(root, Raml10DataType)(finalContext).parseFragment()
   }
 
 

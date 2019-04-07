@@ -17,7 +17,7 @@ import org.yaml.model._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
-class VocabularyDeclarations(var externals: Map[String, External] = Map(),
+class VocabularyDeclarations(val declarations: mutable.Map[String, DomainElement] = mutable.Map(),
                              var classTerms: Map[String, ClassTerm] = Map(),
                              var propertyTerms: Map[String, PropertyTerm] = Map(),
                              var usedVocabs: Map[String, Vocabulary] = Map(),
@@ -25,6 +25,8 @@ class VocabularyDeclarations(var externals: Map[String, External] = Map(),
                              errorHandler: Option[ErrorHandler],
                              futureDeclarations: FutureDeclarations)
     extends Declarations(libs, Map(), Map(), errorHandler, futureDeclarations) {
+
+  def externals = declarations.filter(_._2.isInstanceOf[External]).toMap.asInstanceOf[Map[String,External]]
 
   def registerTerm(term: PropertyTerm) = {
     if (!term.name.value().contains(".")) {
@@ -133,7 +135,7 @@ trait VocabularySyntax { this: VocabularyContext =>
 }
 
 class VocabularyContext(private val wrapped: ParserContext, private val ds: Option[VocabularyDeclarations] = None)
-    extends ParserContext(wrapped.rootContextDocument, wrapped.refs, wrapped.futureDeclarations, wrapped.parserCount)
+    extends ParserContext(wrapped.rootContextDocument, wrapped.refs, wrapped.futureDeclarations, wrapped.parserCount, declarations = wrapped.declarations)
     with VocabularySyntax
     with SyntaxErrorReporter {
 
@@ -147,12 +149,12 @@ class VocabularyContext(private val wrapped: ParserContext, private val ds: Opti
 
   def register(alias: String, classTerm: ClassTerm): Unit = {
     pendingLocal = pendingLocal.filter(_._1 != classTerm.id)
-    declarations.classTerms += (alias -> classTerm)
+    voabularyDeclarations.classTerms += (alias -> classTerm)
   }
 
   def register(alias: String, propertyTerm: PropertyTerm): Unit = {
     pendingLocal = pendingLocal.filter(_._1 != propertyTerm.id)
-    declarations.propertyTerms += (alias -> propertyTerm)
+    voabularyDeclarations.propertyTerms += (alias -> propertyTerm)
   }
 
   def resolvePropertyTermAlias(base: String,
@@ -162,17 +164,17 @@ class VocabularyContext(private val wrapped: ParserContext, private val ds: Opti
     if (propertyTermAlias.contains(".")) {
       val prefix = propertyTermAlias.split("\\.").head
       val value  = propertyTermAlias.split("\\.").last
-      declarations.externals.get(prefix) match {
+      voabularyDeclarations.externals.get(prefix) match {
         case Some(external) => Some(s"${external.base.value()}$value")
         case None =>
-          declarations.libraries.get(prefix) match {
+          voabularyDeclarations.libraries.get(prefix) match {
             case Some(vocab: VocabularyDeclarations) => vocab.getPropertyTermId(value)
             case _                                   => None
           }
       }
     } else {
       val local = s"$base$propertyTermAlias"
-      declarations.getPropertyTermId(propertyTermAlias) match {
+      voabularyDeclarations.getPropertyTermId(propertyTermAlias) match {
         case Some(_) => // ignore
         case None    => if (strictLocal) { pendingLocal ++= Seq((local, propertyTermAlias, where)) }
       }
@@ -184,17 +186,17 @@ class VocabularyContext(private val wrapped: ParserContext, private val ds: Opti
     if (classTermAlias.contains(".")) {
       val prefix = classTermAlias.split("\\.").head
       val value  = classTermAlias.split("\\.").last
-      declarations.externals.get(prefix) match {
+      voabularyDeclarations.externals.get(prefix) match {
         case Some(external) => Some(s"${external.base.value()}$value")
         case None =>
-          declarations.libraries.get(prefix) match {
+          voabularyDeclarations.libraries.get(prefix) match {
             case Some(vocab: VocabularyDeclarations) => vocab.getClassTermId(value)
             case _                                   => None
           }
       }
     } else {
       val local = s"$base$classTermAlias"
-      declarations.getClassTermId(classTermAlias) match {
+      voabularyDeclarations.getClassTermId(classTermAlias) match {
         case Some(_) => // ignore
         case None    => if (strictLocal) { pendingLocal ++= Seq((local, classTermAlias, where)) }
       }
@@ -202,16 +204,16 @@ class VocabularyContext(private val wrapped: ParserContext, private val ds: Opti
     }
   }
 
-  val declarations: VocabularyDeclarations =
-    ds.getOrElse(new VocabularyDeclarations(errorHandler = Some(this), futureDeclarations = futureDeclarations))
+  val voabularyDeclarations: VocabularyDeclarations =
+    ds.getOrElse(new VocabularyDeclarations(declarations, errorHandler = Some(this), futureDeclarations = futureDeclarations))
 
-  def terms(): Seq[DomainElement] = declarations.classTerms.values.toSeq ++ declarations.propertyTerms.values.toSeq
+  def terms(): Seq[DomainElement] = voabularyDeclarations.classTerms.values.toSeq ++ voabularyDeclarations.propertyTerms.values.toSeq
 }
 
 case class ReferenceDeclarations(references: mutable.Map[String, Any] = mutable.Map())(implicit ctx: VocabularyContext) {
   def +=(alias: String, unit: BaseUnit): Unit = {
     references += (alias -> unit)
-    val library = ctx.declarations.getOrCreateLibrary(alias)
+    val library = ctx.voabularyDeclarations.getOrCreateLibrary(alias)
     unit match {
       case d: Vocabulary =>
         ctx.registerVocabulary(alias, d)
@@ -223,8 +225,8 @@ case class ReferenceDeclarations(references: mutable.Map[String, Any] = mutable.
   }
 
   def +=(external: External): Unit = {
-    references += (external.alias.value()                 -> external)
-    ctx.declarations.externals += (external.alias.value() -> external)
+    references += (external.alias.value() -> external)
+    ctx.voabularyDeclarations.declarations += (external.alias.value() -> external)
   }
 
   def baseUnitReferences(): Seq[BaseUnit] =
@@ -316,8 +318,8 @@ class VocabulariesParser(root: Root)(implicit override val ctx: VocabularyContex
 
     val references = VocabulariesReferencesParser(map, root.references).parse(vocabulary.base.value())
 
-    if (ctx.declarations.externals.nonEmpty)
-      vocabulary.withExternals(ctx.declarations.externals.values.toSeq)
+    if (ctx.voabularyDeclarations.externals.nonEmpty)
+      vocabulary.withExternals(ctx.voabularyDeclarations.externals.values.toSeq)
 
     parseClassTerms(map)
     parsePropertyTerms(map)

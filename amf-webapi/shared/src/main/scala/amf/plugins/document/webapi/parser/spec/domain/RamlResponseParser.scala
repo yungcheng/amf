@@ -56,7 +56,7 @@ abstract class RamlResponseParser(entry: YMapEntry, adopt: Response => Unit, par
         response
       case YType.Str | YType.Int =>
         val ref           = entry.value.as[YScalar].text
-        val res: Response = ctx.declarations.findResponseOrError(entry.value)(ref, SearchScope.All).link(ref)
+        val res: Response = ctx.webApiDeclarations.findResponseOrError(entry.value)(ref, SearchScope.All).link(ref)
         res.set(ResponseModel.Name, node).annotations ++= Annotations(entry)
         res
       case _ =>

@@ -310,7 +310,7 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
           case _ =>
             val ref: String = e.value
             val text        = OasDefinitions.stripDefinitionsPrefix(ref)
-            ctx.declarations.findType(text, SearchScope.All) match { // normal declaration to be used from raml or oas
+            ctx.webApiDeclarations.findType(text, SearchScope.All) match { // normal declaration to be used from raml or oas
               case Some(s) =>
                 val copied =
                   s.link(text, Annotations(ast))
@@ -418,12 +418,12 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
             tmpShape.unresolved(text, e, "warning").withSupportsRecursion(true)
             Some(tmpShape)
           case Some(jsonSchemaShape) =>
-            if (ctx.declarations.fragments.contains(text)) {
+            if (ctx.webApiDeclarations.fragments.contains(text)) {
               // case when in an OAS spec we point with a regular $ref to something that is external
               // and holds a JSON schema
               // we need to promote an external fragment to data type fragment
               val promotedShape =
-                ctx.declarations.promoteExternaltoDataTypeFragment(text, fullRef, jsonSchemaShape)
+                ctx.webApiDeclarations.promoteExternaltoDataTypeFragment(text, fullRef, jsonSchemaShape)
               Some(
                 promotedShape
                   .link(text, Annotations(ast))
@@ -445,7 +445,7 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
       SchemaShapeParser(shape, map).parse()
     } else {
       val shape = NodeShape(ast).withName(name, nameAnnotations)
-      checkJsonIdentity(shape, map, adopt, ctx.declarations.futureDeclarations)
+      checkJsonIdentity(shape, map, adopt, ctx.webApiDeclarations.futureDeclarations)
       NodeShapeParser(shape, map).parse()
     }
   }
@@ -714,7 +714,7 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
 
   case class ArrayShapeParser(shape: ArrayShape, map: YMap, adopt: Shape => Unit) extends AnyShapeParser() {
     override def parse(): AnyShape = {
-      checkJsonIdentity(shape, map, adopt, ctx.declarations.futureDeclarations)
+      checkJsonIdentity(shape, map, adopt, ctx.webApiDeclarations.futureDeclarations)
       super.parse()
 
       map.key("minItems", ArrayShapeModel.MinItems in shape)
@@ -893,7 +893,7 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
       entries
         .key("$ref")
         .flatMap { entry =>
-          ctx.declarations.shapes.get(entry.value.as[String].stripPrefix("#/definitions/")) map { declaration =>
+          ctx.webApiDeclarations.shapes.get(entry.value.as[String].stripPrefix("#/definitions/")) map { declaration =>
             declaration
               .link(entry.value.as[String], Annotations(entry.value))
               .asInstanceOf[AnyShape]

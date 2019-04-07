@@ -94,7 +94,8 @@ class ExternalJsonRefsPlugin extends JsonSchemaPlugin {
   override def parse(document: Root,
                      ctx: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = document.parsed match {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = document.parsed match {
 
     case parsed: SyamlParsedDocument =>
       val result =

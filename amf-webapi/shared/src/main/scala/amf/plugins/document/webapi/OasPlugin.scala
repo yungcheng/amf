@@ -40,7 +40,7 @@ sealed trait OasPlugin extends BaseWebApiPlugin {
       case (acc: Map[String, BaseUnit], e: BaseUnit) =>
         acc + (e.location().getOrElse(e.id) -> e)
     }
-    ctx.declarations.promotedFragments.foreach { promoted =>
+    ctx.webApiDeclarations.promotedFragments.foreach { promoted =>
       val key = promoted.location().getOrElse(promoted.id)
       oldReferences = oldReferences + (key -> promoted)
     }
@@ -54,7 +54,8 @@ sealed trait OasPlugin extends BaseWebApiPlugin {
   override def parse(document: Root,
                      parentContext: ParserContext,
                      platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] = {
+                     options: ParsingOptions,
+                     inlined: Boolean = false): Option[BaseUnit] = {
     implicit val ctx: OasWebApiContext = context(document.location, document.references, parentContext)
     val parsed = document.referenceKind match {
       case LibraryReference => Some(OasModuleParser(document).parseModule())

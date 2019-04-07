@@ -118,7 +118,7 @@ object ExtensionLikeParser {
     val exLikeCtx: ExtensionLikeWebApiContext = new ExtensionLikeWebApiContext(baseCtx.rootContextDocument,
                                                                                baseCtx.refs,
                                                                                baseCtx,
-                                                                               Some(baseCtx.declarations),
+                                                                               Some(baseCtx.webApiDeclarations),
                                                                                parentDeclarations)
     new ExtensionLikeParser(root)(exLikeCtx)
   }
@@ -144,7 +144,7 @@ abstract class RamlDocumentParser(root: Root)(implicit val ctx: RamlWebApiContex
     val api = parseWebApi(map).add(SourceVendor(ctx.vendor))
     document.withEncodes(api)
 
-    val declarables = ctx.declarations.declarables()
+    val declarables = ctx.webApiDeclarations.declarables()
     if (declarables.nonEmpty) document.withDeclares(declarables)
     if (references.references.nonEmpty) document.withReferences(references.solvedReferences())
 
@@ -215,7 +215,7 @@ abstract class RamlDocumentParser(root: Root)(implicit val ctx: RamlWebApiContex
       "documentation",
       entry => {
         api.setArray(WebApiModel.Documentations,
-                     UserDocumentationsParser(entry.value.as[Seq[YNode]], ctx.declarations, api.id).parse(),
+                     UserDocumentationsParser(entry.value.as[Seq[YNode]], ctx.webApiDeclarations, api.id).parse(),
                      Annotations(entry))
       }
     )
@@ -238,7 +238,7 @@ trait Raml10BaseSpecParser extends RamlBaseDocumentParser {
         e.value.tagType match {
           case YType.Map =>
             e.value.as[YMap].entries.foreach { entry =>
-              ctx.declarations += SecuritySchemeParser(
+              ctx.webApiDeclarations += SecuritySchemeParser(
                 entry,
                 (scheme, name) => {
                   scheme.set(SecuritySchemeModel.Name,
@@ -296,7 +296,7 @@ abstract class RamlBaseDocumentParser(implicit ctx: RamlWebApiContext) extends R
           .as[YMap]
           .entries
           .foreach(e => {
-            ctx.declarations +=
+            ctx.webApiDeclarations +=
               OasResponseParser(e, (r: Response) => r.adopted(parentPath))(toOas(ctx))
                 .parse()
                 .add(DeclaredElement())
@@ -326,7 +326,7 @@ abstract class RamlBaseDocumentParser(implicit ctx: RamlWebApiContext) extends R
                     customProperty.adopted(customProperties)
                   }
                 )
-                ctx.declarations += customProperty.add(DeclaredElement())
+                ctx.webApiDeclarations += customProperty.add(DeclaredElement())
               }
           case YType.Null =>
           case t =>
@@ -363,7 +363,7 @@ abstract class RamlBaseDocumentParser(implicit ctx: RamlWebApiContext) extends R
             parser.parse() match {
               case Some(shape) =>
                 if (entry.value.tagType == YType.Null) shape.annotations += SynthesizedField()
-                ctx.declarations += shape.add(DeclaredElement())
+                ctx.webApiDeclarations += shape.add(DeclaredElement())
               case None => ctx.violation(UnableToParseShape, parent, s"Error parsing shape '$entry'", entry)
             }
 
@@ -416,7 +416,7 @@ abstract class RamlBaseDocumentParser(implicit ctx: RamlWebApiContext) extends R
                               e)
                 parameter
             }
-            ctx.declarations.registerOasParameter(oasParameter)
+            ctx.webApiDeclarations.registerOasParameter(oasParameter)
           })
       }
     )
@@ -500,7 +500,7 @@ abstract class RamlSpecParser(implicit ctx: RamlWebApiContext) extends WebApiBas
           val domainProp      = CustomDomainProperty(ast)
           adopt(domainProp)
 
-          ctx.declarations.findAnnotation(scalar.text, SearchScope.All) match {
+          ctx.webApiDeclarations.findAnnotation(scalar.text, SearchScope.All) match {
             case Some(a) =>
               val copied: CustomDomainProperty = a.link(scalar.text, Annotations(ast))
               copied.id = null // we reset the ID so it can be adopted, there's an extra rule where the id is not set

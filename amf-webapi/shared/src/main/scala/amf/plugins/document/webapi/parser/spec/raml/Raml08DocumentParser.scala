@@ -72,7 +72,7 @@ case class Raml08DocumentParser(root: Root)(implicit override val ctx: RamlWebAp
           Nil
       }
       entries.foreach { entry =>
-        ctx.declarations += AbstractDeclarationParser(producer(entry), parent, entry).parse()
+        ctx.webApiDeclarations += AbstractDeclarationParser(producer(entry), parent, entry).parse()
       }
     }
   }
@@ -94,7 +94,7 @@ case class Raml08DocumentParser(root: Root)(implicit override val ctx: RamlWebAp
   }
 
   private def parseEntries(entries: Seq[YMapEntry], parent: String): Unit = entries.foreach { entry =>
-    ctx.declarations += SecuritySchemeParser(entry, (scheme, name) => scheme.withName(name).adopted(parent))
+    ctx.webApiDeclarations += SecuritySchemeParser(entry, (scheme, name) => scheme.withName(name).adopted(parent))
       .parse()
       .add(DeclaredElement())
   }
@@ -129,7 +129,7 @@ case class Raml08DocumentParser(root: Root)(implicit override val ctx: RamlWebAp
                        StringDefaultType)
         .parse() match {
         case Some(shape) =>
-          ctx.declarations += shape.add(DeclaredElement())
+          ctx.webApiDeclarations += shape.add(DeclaredElement())
           // This is a workaround for the weird situations where we reuse a local RAML identifier inside a json schema without
           // a proper $ref
           val localRaml08RefInJson = platform.normalizePath(ctx.basePath(ctx.rootContextDocument) + shape.name.value())

@@ -91,7 +91,7 @@ abstract class RamlEndpointParser(entry: YMapEntry,
       entry =>
         ParametrizedDeclarationParser(entry.value,
                                       endpoint.withResourceType,
-                                      ctx.declarations.findResourceTypeOrError(entry.value))
+                                      ctx.webApiDeclarations.findResourceTypeOrError(entry.value))
           .parse()
     )
 

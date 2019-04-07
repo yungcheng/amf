@@ -30,7 +30,7 @@ case class OasModuleParser(root: Root)(implicit val ctx: OasWebApiContext) exten
 
       UsageParser(rootMap, module).parse()
 
-      val declarable = ctx.declarations.declarables()
+      val declarable = ctx.webApiDeclarations.declarables()
       if (declarable.nonEmpty) module.withDeclares(declarable)
       if (references.references.nonEmpty) module.withReferences(references.solvedReferences())
     }

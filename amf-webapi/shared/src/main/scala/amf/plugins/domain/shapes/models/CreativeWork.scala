@@ -37,6 +37,8 @@ class CreativeWork(override val fields: Fields, override val annotations: Annota
 
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = CreativeWork.apply
+
+  override def declarationNameProperty: String = throw new Exception("CreativeWork nodes do not have a declartion name")
 }
 
 object CreativeWork {
