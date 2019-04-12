@@ -6,7 +6,6 @@ import amf.core.parser.{Annotations, _}
 import amf.core.utils._
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.webapi.contexts.WebApiContext
-import amf.plugins.features.validation.ParserSideValidations.SyamlError
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.model._
 import org.yaml.parser.YamlParser

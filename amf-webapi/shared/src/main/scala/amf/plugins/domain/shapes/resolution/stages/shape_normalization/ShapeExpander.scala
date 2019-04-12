@@ -9,7 +9,6 @@ import amf.core.parser.Annotations
 import amf.plugins.domain.shapes.metamodel._
 import amf.plugins.domain.shapes.models._
 import amf.plugins.domain.shapes.resolution.stages.RecursionErrorRegister
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 private[stages] object ShapeExpander {
   def apply(s: Shape, context: NormalizationContext, recursionRegister: RecursionErrorRegister): Shape =

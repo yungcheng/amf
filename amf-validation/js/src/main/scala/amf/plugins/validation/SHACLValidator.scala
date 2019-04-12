@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import amf.AmfProfile
 import amf.core.benchmark.ExecutionLog
@@ -7,7 +7,6 @@ import amf.core.model.document.BaseUnit
 import amf.core.rdf.{RdfModel, RdfModelEmitter}
 import amf.core.services.ValidationOptions
 import amf.core.validation.core.{ValidationReport, ValidationSpecification}
-import amf.plugins.features.validation.emitters.ValidationRdfModelEmitter
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}

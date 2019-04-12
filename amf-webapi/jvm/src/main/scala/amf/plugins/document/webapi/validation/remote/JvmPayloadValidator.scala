@@ -6,7 +6,6 @@ import amf.core.model.document.PayloadFragment
 import amf.core.model.domain.Shape
 import amf.core.utils.RegexConverter
 import amf.core.validation.{AMFValidationResult, SeverityLevels}
-import amf.plugins.features.validation.ParserSideValidations.ExampleValidationErrorSpecification
 import org.everit.json.schema.internal.{DateFormatValidator, RegexFormatValidator, URIFormatValidator}
 import org.everit.json.schema.loader.SchemaLoader
 import org.everit.json.schema.regexp.{JavaUtilRegexpFactory, Regexp}

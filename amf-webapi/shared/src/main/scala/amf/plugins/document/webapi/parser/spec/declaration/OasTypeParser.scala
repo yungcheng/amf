@@ -21,8 +21,6 @@ import amf.plugins.domain.shapes.models.TypeDef._
 import amf.plugins.domain.shapes.models._
 import amf.plugins.domain.shapes.parser.XsdTypeDefMapping
 import amf.plugins.domain.webapi.annotations.TypePropertyLexicalInfo
-import amf.plugins.features.validation.ParserSideValidations._
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 import org.yaml.model._
 import org.yaml.render.YamlRender
 

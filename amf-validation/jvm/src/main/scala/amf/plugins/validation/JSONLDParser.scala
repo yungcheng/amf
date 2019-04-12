@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import org.json4s.JsonAST.{JArray, JString}
 import org.json4s.{JObject, JValue}

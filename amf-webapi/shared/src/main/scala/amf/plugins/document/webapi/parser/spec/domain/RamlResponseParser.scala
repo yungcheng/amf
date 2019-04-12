@@ -9,7 +9,6 @@ import amf.plugins.document.webapi.parser.spec.common.{AnnotationParser, SpecPar
 import amf.plugins.document.webapi.parser.spec.declaration.{AnyDefaultType, DefaultType}
 import amf.plugins.domain.webapi.metamodel.{RequestModel, ResponseModel}
 import amf.plugins.domain.webapi.models.{Parameter, Payload, Response}
-import amf.plugins.features.validation.ParserSideValidations.UnsupportedExampleMediaTypeErrorSpecification
 import org.yaml.model.{YMap, YMapEntry, YScalar, YType}
 import amf.plugins.domain.shapes.models.ExampleTracking.tracking
 

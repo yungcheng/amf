@@ -26,7 +26,6 @@ import amf.plugins.domain.shapes.models.TypeDef._
 import amf.plugins.domain.shapes.models._
 import amf.plugins.domain.shapes.parser.{TypeDefXsdMapping, TypeDefYTypeMapping, XsdTypeDefMapping}
 import amf.plugins.domain.webapi.annotations.TypePropertyLexicalInfo
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 import org.yaml.model.YDocument.{EntryBuilder, PartBuilder}
 import org.yaml.model.{YNode, YScalar, YType}
 
@@ -1280,7 +1279,8 @@ case class OasTypeEmitter(shape: Shape,
         OasArrayShapeEmitter(copiedArray, ordering, references, pointer, updatedSchemaPath, isHeader).emitters()
       case matrix: MatrixShape =>
         val copiedMatrix = matrix.copy(fields = matrix.fields.filter(f => !ignored.contains(f._1))).withId(matrix.id)
-        OasArrayShapeEmitter(copiedMatrix.toArrayShape, ordering, references, pointer, updatedSchemaPath, isHeader).emitters()
+        OasArrayShapeEmitter(copiedMatrix.toArrayShape, ordering, references, pointer, updatedSchemaPath, isHeader)
+          .emitters()
       case array: TupleShape =>
         val copiedArray = array.copy(fields = array.fields.filter(f => !ignored.contains(f._1)))
         OasTupleShapeEmitter(copiedArray, ordering, references, pointer, updatedSchemaPath, isHeader).emitters()
@@ -1557,7 +1557,7 @@ class OasAnyShapeEmitter(shape: AnyShape,
   }
 
   private def examplesEmitters(main: Option[Example], extentions: Seq[Example], isHeader: Boolean) = {
-    val em = ListBuffer[EntryEmitter]()
+    val em    = ListBuffer[EntryEmitter]()
     val label = if (isHeader) "x-amf-example" else "example"
     main.foreach(a => em += SingleExampleEmitter(label, a, ordering))
     val labesl = if (isHeader) "x-amf-examples" else "examples"
@@ -1990,8 +1990,10 @@ trait OasCommonOASFieldsEmitter extends RamlFormatTranslator {
 
 }
 
-case class OasScalarShapeEmitter(scalar: ScalarShape, ordering: SpecOrdering, references: Seq[BaseUnit], isHeader: Boolean = false)(
-    override implicit val spec: OasSpecEmitterContext)
+case class OasScalarShapeEmitter(scalar: ScalarShape,
+                                 ordering: SpecOrdering,
+                                 references: Seq[BaseUnit],
+                                 isHeader: Boolean = false)(override implicit val spec: OasSpecEmitterContext)
     extends OasAnyShapeEmitter(scalar, ordering, references, isHeader = isHeader)
     with OasCommonOASFieldsEmitter {
 
@@ -2028,8 +2030,10 @@ case class OasScalarShapeEmitter(scalar: ScalarShape, ordering: SpecOrdering, re
   }
 }
 
-case class OasFileShapeEmitter(scalar: FileShape, ordering: SpecOrdering, references: Seq[BaseUnit], isHeader: Boolean)(
-    override implicit val spec: OasSpecEmitterContext)
+case class OasFileShapeEmitter(scalar: FileShape,
+                               ordering: SpecOrdering,
+                               references: Seq[BaseUnit],
+                               isHeader: Boolean)(override implicit val spec: OasSpecEmitterContext)
     extends OasAnyShapeEmitter(scalar, ordering, references, isHeader = isHeader)
     with OasCommonOASFieldsEmitter {
 
@@ -2116,7 +2120,7 @@ case class OasPropertyShapeEmitter(property: PropertyShape,
     property.fields.entry(PropertyShapeModel.ReadOnly).map(fe => ValueEmitter("readOnly", fe))
 
   val propertyName: String = property.patternName.option().getOrElse(property.name.value())
-  val propertyKey = YNode(YScalar(propertyName), YType.Str)
+  val propertyKey          = YNode(YScalar(propertyName), YType.Str)
 
   val computedEmitters: Either[PartEmitter, Seq[EntryEmitter]] =
     emitter(pointer ++ Seq("properties", propertyName), schemaPath)

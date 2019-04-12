@@ -15,12 +15,6 @@ import amf.plugins.document.webapi.parser.spec.declaration.{
   _
 }
 import amf.plugins.domain.webapi.models.templates.{ResourceType, Trait}
-import amf.plugins.features.validation.ParserSideValidations.{
-  InvalidAbstractDeclarationType,
-  InvalidSecuredByType,
-  InvalidTypeDefinition,
-  InvalidTypesType
-}
 import org.yaml.model.{YMap, YMapEntry, YScalar, YType}
 
 /**

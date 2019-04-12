@@ -21,7 +21,6 @@ import amf.plugins.document.webapi.references.WebApiReferenceHandler
 import amf.plugins.document.webapi.validation.WebApiValidations
 import amf.plugins.domain.shapes.DataShapesDomainPlugin
 import amf.plugins.domain.webapi.WebAPIDomainPlugin
-import amf.plugins.features.validation.ResolutionSideValidations.UnsupportedPipeline
 
 import scala.concurrent.Future
 

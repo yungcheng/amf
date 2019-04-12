@@ -2,7 +2,6 @@ package amf.plugins.document.webapi.validation.remote
 import amf.ProfileName
 import amf.core.model.document.PayloadFragment
 import amf.core.validation.{AMFValidationReport, AMFValidationResult, SeverityLevels}
-import amf.plugins.features.validation.ParserSideValidations.ExampleValidationErrorSpecification
 
 trait ValidationProcessor {
   type Return

@@ -14,7 +14,6 @@ import amf.plugins.domain.shapes.metamodel.{ArrayShapeModel, NodeShapeModel, Sca
 import amf.plugins.domain.shapes.models.TypeDef.NumberType
 import amf.plugins.domain.shapes.models._
 import amf.plugins.domain.shapes.parser.TypeDefXsdMapping
-import amf.plugins.features.validation.{ParserSideValidations, Validations}
 import org.yaml.model.YDocument.EntryBuilder
 
 import scala.collection.mutable

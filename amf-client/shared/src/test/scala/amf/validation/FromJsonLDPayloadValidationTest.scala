@@ -2,8 +2,6 @@ package amf.validation
 
 import amf.core.unsafe.PlatformSecrets
 import amf.facades.Validation
-import amf.plugins.features.validation.PlatformValidator
-import amf.plugins.features.validation.emitters.{JSLibraryEmitter, ValidationJSONLDEmitter}
 import amf.{AmfProfile, OasProfile, RamlProfile}
 import org.scalatest.AsyncFunSuite
 

@@ -9,7 +9,6 @@ import amf.core.resolution.stages.ResolutionStage
 import amf.plugins.document.webapi.parser.spec.domain.Parameters
 import amf.plugins.domain.webapi.metamodel.{EndPointModel, RequestModel, ServerModel}
 import amf.plugins.domain.webapi.models.{Operation, Parameter, WebApi}
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 /**
   * Place parameter models in the right locations according to the RAML/OpenAPI specs and our own

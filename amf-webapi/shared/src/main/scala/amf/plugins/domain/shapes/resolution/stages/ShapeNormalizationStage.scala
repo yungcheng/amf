@@ -8,7 +8,6 @@ import amf.core.parser.ErrorHandler
 import amf.core.resolution.stages.ResolutionStage
 import amf.core.vocabulary.{Namespace, ValueType}
 import amf.plugins.domain.shapes.resolution.stages.shape_normalization._
-import amf.plugins.features.validation.ResolutionSideValidations.RecursiveShapeSpecification
 
 import scala.collection.mutable.ListBuffer
 

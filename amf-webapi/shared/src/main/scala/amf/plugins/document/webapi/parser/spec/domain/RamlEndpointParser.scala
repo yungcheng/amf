@@ -17,12 +17,6 @@ import amf.plugins.domain.webapi.annotations.ParentEndPoint
 import amf.plugins.domain.webapi.metamodel.EndPointModel
 import amf.plugins.domain.webapi.metamodel.EndPointModel._
 import amf.plugins.domain.webapi.models.{EndPoint, Operation, Parameter}
-import amf.plugins.features.validation.ParserSideValidations.{
-  DuplicatedEndpointPath,
-  InvalidEndpointPath,
-  UnusedBaseUriParameter
-}
-import amf.plugins.features.validation.ResolutionSideValidations.NestedEndpoint
 import org.yaml.model._
 
 import scala.collection.mutable

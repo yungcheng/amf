@@ -9,10 +9,6 @@ import amf.plugins.document.webapi.parser.spec.common.WellKnownAnnotation.isRaml
 import amf.plugins.document.webapi.parser.spec.common._
 import amf.plugins.domain.webapi.metamodel.security._
 import amf.plugins.domain.webapi.models.security._
-import amf.plugins.features.validation.ParserSideValidations.{
-  UnknownScopeErrorSpecification,
-  UnknownSecuritySchemeErrorSpecification
-}
 import org.yaml.model._
 
 object RamlParametrizedSecuritySchemeParser {

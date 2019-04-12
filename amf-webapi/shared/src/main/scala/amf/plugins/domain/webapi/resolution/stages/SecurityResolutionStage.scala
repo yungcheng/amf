@@ -9,7 +9,6 @@ import amf.plugins.domain.webapi.metamodel.security.OAuth2SettingsModel
 import amf.plugins.domain.webapi.metamodel.{EndPointModel, OperationModel, WebApiModel}
 import amf.plugins.domain.webapi.models.WebApi
 import amf.plugins.domain.webapi.models.security.{OAuth2Settings, ParametrizedSecurityScheme, Settings}
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 class SecurityResolutionStage()(override implicit val errorHandler: ErrorHandler) extends ResolutionStage() {
 

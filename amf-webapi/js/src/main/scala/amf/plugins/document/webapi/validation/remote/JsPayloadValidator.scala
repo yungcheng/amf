@@ -4,7 +4,6 @@ import amf.client.plugins.ValidationMode
 import amf.core.model.document.PayloadFragment
 import amf.core.model.domain.Shape
 import amf.core.validation.{AMFValidationResult, SeverityLevels}
-import amf.plugins.features.validation.ParserSideValidations.ExampleValidationErrorSpecification
 
 import scala.scalajs.js
 import scala.scalajs.js.{Dictionary, JavaScriptException, SyntaxError}

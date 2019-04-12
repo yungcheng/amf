@@ -11,7 +11,6 @@ import amf.plugins.domain.webapi.models.{Payload, Request, WebApi}
 import amf.{Oas20Profile, OasProfile, ProfileName}
 import amf.plugins.domain.shapes.models.ExampleTracking.tracking
 import amf.plugins.domain.shapes.models.{FileShape, NodeShape}
-import amf.plugins.features.validation.ParserSideValidations.InvalidConsumesWithFileParameter
 
 /** Apply root and operation mime types to payloads.
   *

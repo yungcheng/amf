@@ -6,7 +6,6 @@ import amf.core.model.domain.templates.{AbstractDeclaration, ParametrizedDeclara
 import amf.core.parser.{Annotations, _}
 import amf.plugins.document.webapi.contexts.WebApiContext
 import amf.plugins.document.webapi.parser.spec.common.DataNodeParser
-import amf.plugins.features.validation.ParserSideValidations.InvalidAbstractDeclarationType
 import org.yaml.model._
 
 object ParametrizedDeclarationParser {

@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import java.io.{InputStreamReader, Reader, StringReader}
 import java.nio.charset.Charset
@@ -9,7 +9,6 @@ import amf.core.model.document.BaseUnit
 import amf.core.rdf.{RdfModel, RdfModelEmitter}
 import amf.core.services.ValidationOptions
 import amf.core.validation.core.{ValidationReport, ValidationSpecification}
-import amf.plugins.features.validation.emitters.ValidationRdfModelEmitter
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.jena.rdf.model.{Model, Resource}

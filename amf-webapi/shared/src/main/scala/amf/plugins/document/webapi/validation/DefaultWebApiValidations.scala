@@ -6,7 +6,6 @@ import amf.core.validation.SeverityLevels
 import amf.core.validation.core._
 import amf.core.vocabulary.{Namespace, ValueType}
 import amf.plugins.document.webapi.validation.AMFRawValidations.AMFValidation
-import amf.plugins.features.validation.{ParserSideValidations, Validations}
 
 /**
   * Created by antoniogarrote on 17/07/2017.

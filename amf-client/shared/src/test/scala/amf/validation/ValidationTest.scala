@@ -15,7 +15,6 @@ import amf.plugins.document.webapi.Raml10Plugin
 import amf.plugins.document.webapi.resolution.pipelines.ValidationResolutionPipeline
 import amf.plugins.document.webapi.validation.AMFShapeValidations
 import amf.plugins.domain.shapes.models.ArrayShape
-import amf.plugins.features.validation.ResolutionSideValidations.RecursiveShapeSpecification
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -343,10 +342,7 @@ class ValidationTest extends AsyncFunSuite with PlatformSecrets {
   test("Numeric status codes in OAS responses") {
     for {
       validation <- Validation(platform)
-      doc <- AMFCompiler(productionPath + "/oas_numeric_resources.yaml",
-        platform,
-        OasYamlHint,
-        validation)
+      doc <- AMFCompiler(productionPath + "/oas_numeric_resources.yaml", platform, OasYamlHint, validation)
         .build()
       report <- validation.validate(doc, Oas20Profile)
     } yield {

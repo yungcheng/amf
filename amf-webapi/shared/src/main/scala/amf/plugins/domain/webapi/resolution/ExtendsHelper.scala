@@ -19,7 +19,6 @@ import amf.plugins.document.webapi.contexts.{
 import amf.plugins.document.webapi.parser.spec.WebApiDeclarations.ErrorEndPoint
 import amf.plugins.document.webapi.parser.spec.declaration.DataNodeEmitter
 import amf.plugins.domain.webapi.models.{EndPoint, Operation}
-import amf.plugins.features.validation.ResolutionSideValidations.{ParseResourceTypeFail, ResolutionValidation}
 import amf.{ProfileName, Raml08Profile}
 import org.yaml.model._
 

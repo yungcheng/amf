@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import amf.core.validation.core.{ValidationReport, ValidationResult}
 import org.json4s

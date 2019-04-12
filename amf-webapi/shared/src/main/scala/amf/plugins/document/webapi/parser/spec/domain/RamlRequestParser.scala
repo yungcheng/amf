@@ -8,10 +8,6 @@ import amf.plugins.document.webapi.parser.spec.common.SpecParserOps
 import amf.plugins.document.webapi.parser.spec.declaration.{AnyDefaultType, DefaultType, Raml10TypeParser}
 import amf.plugins.domain.webapi.metamodel.RequestModel
 import amf.plugins.domain.webapi.models.{Parameter, Payload, Request}
-import amf.plugins.features.validation.ParserSideValidations.{
-  ExclusivePropertiesSpecification,
-  UnsupportedExampleMediaTypeErrorSpecification
-}
 import org.yaml.model.{YMap, YScalar, YType}
 import amf.plugins.domain.shapes.models.ExampleTracking.tracking
 

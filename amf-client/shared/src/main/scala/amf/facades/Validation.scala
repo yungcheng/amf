@@ -14,8 +14,6 @@ import amf.plugins.document.webapi.validation.PayloadValidatorPlugin
 import amf.plugins.document.webapi.{Oas20Plugin, PayloadPlugin, Raml08Plugin, Raml10Plugin, _}
 import amf.plugins.domain.shapes.DataShapesDomainPlugin
 import amf.plugins.domain.webapi.WebAPIDomainPlugin
-import amf.plugins.features.validation.AMFValidatorPlugin
-import amf.plugins.features.validation.model.ValidationDialectText
 import amf.plugins.syntax.SYamlSyntaxPlugin
 
 import scala.concurrent.ExecutionContext.Implicits.global

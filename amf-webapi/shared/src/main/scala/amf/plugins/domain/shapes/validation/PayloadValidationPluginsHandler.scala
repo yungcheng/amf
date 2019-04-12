@@ -9,7 +9,6 @@ import amf.core.utils._
 import amf.core.validation._
 import amf.core.vocabulary.Namespace
 import amf.internal.environment.Environment
-import amf.plugins.features.validation.ParserSideValidations
 
 import scala.collection.mutable
 import scala.concurrent.Future

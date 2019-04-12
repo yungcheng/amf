@@ -3,7 +3,6 @@ package amf.validation
 import amf.ProfileName
 import amf.core.remote.{Hint, RamlYamlHint}
 import amf.core.validation.AMFValidationReport
-import amf.plugins.features.validation.emitters.ValidationReportJSONLDEmitter
 
 class UniquePlatformWithProfileTest extends UniquePlatformReportGenTest {
 

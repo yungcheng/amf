@@ -8,7 +8,6 @@ import amf.core.services.RuntimeValidator
 import amf.core.validation.AMFValidationReport
 import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.model.document.DialectInstance
-import amf.plugins.features.validation.emitters.ValidationReportJSONLDEmitter
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -48,7 +47,7 @@ class ValidateCommand(override val platform: Platform) extends CommandHelper {
             AMLPlugin.registry.dialectFor(dialectInstance) match {
               case Some(dialect) =>
                 ProfileName(dialect.nameAndVersion())
-              case _             =>
+              case _ =>
                 config.profile
             }
           case _ =>

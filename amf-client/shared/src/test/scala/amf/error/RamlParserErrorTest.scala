@@ -5,7 +5,6 @@ import amf.core.parser.Range
 import amf.core.remote.RamlYamlHint
 import amf.facades.{AMFCompiler, Validation}
 import amf.plugins.domain.shapes.models.{ScalarShape, UnresolvedShape}
-import amf.plugins.features.validation.ParserSideValidations
 
 import scala.concurrent.Future
 

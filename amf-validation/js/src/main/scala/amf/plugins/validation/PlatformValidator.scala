@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 object PlatformValidator {
   val instance = new SHACLValidator

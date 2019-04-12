@@ -16,7 +16,6 @@ import _root_.org.scalatest.compatible.Assertion
 import amf.core.parser.{DefaultParserSideErrorHandler, UnhandledErrorHandler}
 import amf.core.vocabulary.Namespace
 import amf.emit.AMFRenderer
-import amf.plugins.features.validation.ParserSideValidations.ExampleValidationErrorSpecification
 
 import scala.concurrent.Future
 

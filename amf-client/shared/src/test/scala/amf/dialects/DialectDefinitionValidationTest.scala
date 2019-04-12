@@ -8,8 +8,6 @@ import amf.facades.Validation
 import amf.io.FileAssertionTest
 import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.model.document.{Dialect, DialectInstance}
-import amf.plugins.features.validation.AMFValidatorPlugin
-import amf.plugins.features.validation.emitters.ValidationReportJSONLDEmitter
 import org.scalatest.{Assertion, AsyncFunSuite, Matchers}
 
 import scala.concurrent.{ExecutionContext, Future}

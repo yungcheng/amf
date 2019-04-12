@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import java.io.{PrintWriter, StringWriter, Writer => JavaWriter}
 

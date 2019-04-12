@@ -2,10 +2,6 @@ package amf.plugins.domain.shapes.resolution.stages.shape_normalization
 import amf.core.metamodel.domain.ShapeModel
 import amf.core.model.domain.{RecursiveShape, Shape}
 import amf.core.parser.ErrorHandler
-import amf.plugins.features.validation.ResolutionSideValidations.{
-  InvalidTypeInheritanceWarningSpecification,
-  ResolutionValidation
-}
 import amf.{ProfileName, Raml08Profile}
 
 import scala.collection.mutable

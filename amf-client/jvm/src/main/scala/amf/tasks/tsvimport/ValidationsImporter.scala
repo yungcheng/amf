@@ -43,7 +43,7 @@ object ValidationsImporter {
 
     s"""
        |// auto-generated class from ValidationsImporter.toScala
-       |package amf.plugins.features.validation.model
+       |package amf.plugins.validation.model
        |
        |// scalastyle:off line.contains.tab
       |object AMFRawValidations {

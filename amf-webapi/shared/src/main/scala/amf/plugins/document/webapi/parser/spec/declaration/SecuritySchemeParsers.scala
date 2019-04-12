@@ -14,12 +14,6 @@ import amf.plugins.domain.shapes.models.ExampleTracking.tracking
 import amf.plugins.domain.webapi.metamodel.security._
 import amf.plugins.domain.webapi.models.security.{Scope, SecurityScheme, Settings}
 import amf.plugins.domain.webapi.models.{Parameter, Response}
-import amf.plugins.features.validation.ParserSideValidations
-import amf.plugins.features.validation.ParserSideValidations.{
-  DuplicatedOperationStatusCodeSpecification,
-  ExclusivePropertiesSpecification,
-  CrossSecurityWarningSpecification
-}
 import org.yaml.model._
 
 import scala.collection.mutable

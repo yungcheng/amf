@@ -16,7 +16,6 @@ import amf.plugins.domain.shapes.models.ExampleTracking.tracking
 import amf.plugins.domain.shapes.models.{AnyShape, ScalarShape}
 import amf.plugins.domain.webapi.metamodel.{EndPointModel, OperationModel}
 import amf.plugins.domain.webapi.models.{Operation, Payload}
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 /**
   * Merge 'other' element into 'main' element:

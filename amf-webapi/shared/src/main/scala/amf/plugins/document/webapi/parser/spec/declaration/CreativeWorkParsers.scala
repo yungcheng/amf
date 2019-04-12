@@ -8,7 +8,6 @@ import amf.plugins.domain.shapes.metamodel.CreativeWorkModel
 import amf.plugins.domain.shapes.models.CreativeWork
 import org.yaml.model.{YMap, YNode}
 import amf.core.utils.Strings
-import amf.plugins.features.validation.ParserSideValidations.UnexpectedVendor
 
 object OasCreativeWorkParser {
   def parse(node: YNode)(implicit ctx: WebApiContext): CreativeWork = OasCreativeWorkParser(node.as[YMap]).parse()
