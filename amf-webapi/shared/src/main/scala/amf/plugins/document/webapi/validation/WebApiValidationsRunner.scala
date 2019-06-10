@@ -62,7 +62,7 @@ case class FilterDataNodeOptions() extends ValidationOptions {
 
 case class ModelValidationStep(override val validationContext: ValidationContext) extends ValidationStep {
 
-  override protected def validate(): Future[Seq[AMFValidationResult]] = {
+  override protected def validate(): Future[Seq[AMFValidationResult]] = ExecutionLog.withStage("Model validation") {
     val baseOptions = FilterDataNodeOptions().withMessageStyle(validationContext.messageStyle)
     val options = validationContext.profile match {
       case RamlProfile | Raml10Profile | Raml08Profile | OasProfile | Oas20Profile | Oas30Profile | AmfProfile =>
@@ -86,7 +86,7 @@ case class ModelValidationStep(override val validationContext: ValidationContext
 
 case class ExamplesValidationStep(override val validationContext: ValidationContext) extends ValidationStep {
 
-  override protected def validate(): Future[Seq[AMFValidationResult]] = {
+  override protected def validate(): Future[Seq[AMFValidationResult]] = ExecutionLog.withStage("Examples validation") {
     UnitPayloadsValidation(validationContext.baseUnit, validationContext.platform)
       .validate(validationContext.env)
       .map { results =>
@@ -102,10 +102,11 @@ case class ExamplesValidationStep(override val validationContext: ValidationCont
 }
 
 case class ParserValidationStep(override val validationContext: ValidationContext) extends ValidationStep {
-  override protected def validate(): Future[Seq[AMFValidationResult]] =
+  override protected def validate(): Future[Seq[AMFValidationResult]] = ExecutionLog.withStage("Parser Validation") {
     RuntimeValidator
       .aggregateReport(validationContext.baseUnit, validationContext.profile, validationContext.messageStyle)
       .map(_.results)
+  }
 
   override def endStep: Boolean = true
 }

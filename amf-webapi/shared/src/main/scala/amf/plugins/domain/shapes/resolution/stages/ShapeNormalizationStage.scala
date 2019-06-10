@@ -1,6 +1,7 @@
 package amf.plugins.domain.shapes.resolution.stages
 
 import amf.ProfileName
+import amf.core.benchmark.ExecutionLog
 import amf.core.metamodel.{MetaModelTypeMapping, Obj}
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain._
@@ -40,7 +41,11 @@ class ShapeNormalizationStage(profile: ProfileName, val keepEditingInfo: Boolean
 
   protected def transform(element: DomainElement, isCycle: Boolean): Option[DomainElement] = {
     element match {
-      case shape: Shape => Some(ShapeCanonizer(ShapeExpander(shape, context, recursionRegister), context))
+      case shape: Shape =>
+        //ExecutionLog.withStage(s"Normalising Shape ${shape.id}") {
+          Some(ShapeCanonizer(ShapeExpander(shape, context, recursionRegister), context))
+        //}
+
       case other        => Some(other)
     }
   }

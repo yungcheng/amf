@@ -105,7 +105,6 @@ object CmdLineParser {
           .abbr("t")
           .text("Trace execution")
           .action { (f, c) =>
-            println(s"TRACING EXECUTION... ${f} => ${c}")
             c.copy(trace = true)
           }
       }

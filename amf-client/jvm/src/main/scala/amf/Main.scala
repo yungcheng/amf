@@ -17,11 +17,7 @@ object Main extends PlatformSecrets {
 
   def enableTracing(cfg: ParserConfig) = {
     if (cfg.trace) {
-      println("Enabling tracing!")
       ExecutionLog.start()
-    } else {
-      println("NOT TRACING")
-      println(cfg)
     }
   }
 
@@ -38,8 +34,8 @@ object Main extends PlatformSecrets {
             val f = runParse(cfg)
             val ff = f.transform { r =>
               if (cfg.trace) {
-                println("\n\n\n\n")
                 ExecutionLog.finish().buildReport()
+                ExecutionLog.printStages()
               }
               r
             }

@@ -22,23 +22,29 @@ object Main extends PlatformSecrets {
 
   def enableTracing(cfg: ParserConfig) = {
     if (cfg.trace) {
-      println("Enabling tracing!")
       ExecutionLog.start()
-    } else {
-      println("NOT TRACING")
-      println(cfg)
     }
   }
 
   def main(rawArgs: js.Array[String]): js.Promise[Any] = {
     val args = rawArgs.toArray
-    CmdLineParser.parse(args) match {
+    val finalArgs = args.dropWhile { a =>
+      a match {
+        case "parse"     => false
+        case "translate" => false
+        case "repl"      => false
+        case "patch"     => false
+        case "validate"  => false
+        case _           => true
+      }
+    }
+    CmdLineParser.parse(finalArgs) match {
       case Some(cfg) =>
         enableTracing(cfg)
         cfg.mode match {
           case Some(ParserConfig.REPL) =>
             println("REPL not supported in the JS client yet")
-            failCommand()
+            failCommand("REPL")
             throw new Exception("Error executing AMF")
           case Some(ParserConfig.TRANSLATE) =>
             val f = runTranslate(cfg)
@@ -52,8 +58,10 @@ object Main extends PlatformSecrets {
             val f = runParse(cfg)
             f.failed.foreach(e => failPromise(e))
             val composed = f.transform { r =>
-              println("... composing...")
-              ExecutionLog.finish().buildReport()
+              if (cfg.trace) {
+                ExecutionLog.finish().buildReport()
+                ExecutionLog.printStages()
+              }
               r
             }
             composed.toJSPromise
@@ -61,8 +69,8 @@ object Main extends PlatformSecrets {
             val f = runPatch(cfg)
             f.failed.foreach(e => failPromise(e))
             f.toJSPromise
-          case _ =>
-            failCommand()
+          case wrongCommand =>
+            failCommand(wrongCommand.toString)
             throw new Exception("Error executing AMF")
         }
       case _ =>
@@ -71,8 +79,8 @@ object Main extends PlatformSecrets {
     }
   }
 
-  def failCommand(): Unit = {
-    System.err.println("Wrong command")
+  def failCommand(wrongCommand: String): Unit = {
+    System.err.println(s"Wrong command $wrongCommand")
     js.Dynamic.global.process.exit(ExitCodes.WrongInvocation)
   }
   def failPromise(e: Any): Unit = {

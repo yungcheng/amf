@@ -1,6 +1,7 @@
 package amf.plugins.document.webapi.resolution.pipelines
 
 import amf.ProfileName
+import amf.core.benchmark.ExecutionLog
 import amf.core.model.document.BaseUnit
 import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler}
 import amf.core.resolution.pipelines.ResolutionPipeline
@@ -25,7 +26,7 @@ class ValidationResolutionPipeline(profile: ProfileName, override val eh: ErrorH
 }
 
 object ValidationResolutionPipeline {
-  def apply(profile: ProfileName, unit: BaseUnit): BaseUnit = {
+  def apply(profile: ProfileName, unit: BaseUnit): BaseUnit = ExecutionLog.withStage("Validation resolution"){
     val handler = DefaultParserSideErrorHandler(unit)
     new ValidationResolutionPipeline(profile, handler).resolve(unit)
   }

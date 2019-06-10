@@ -3,6 +3,7 @@ package amf.plugins.document.webapi
 import amf.AmfProfile
 import amf.client.plugins.{AMFDocumentPlugin, AMFPlugin}
 import amf.core.Root
+import amf.core.benchmark.ExecutionLog
 import amf.core.client.ParsingOptions
 import amf.core.emitter.RenderOptions
 import amf.core.model.document.{BaseUnit, PayloadFragment}

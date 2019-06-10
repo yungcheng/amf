@@ -1,5 +1,6 @@
 package amf.plugins.domain.shapes.resolution.stages.shape_normalization
 
+import amf.core.benchmark.ExecutionLog
 import amf.core.model.domain.Shape
 
 private[stages] trait ShapeNormalizer {

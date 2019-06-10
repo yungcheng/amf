@@ -1,5 +1,6 @@
 package amf.client.commands
 
+import amf.core.benchmark.ExecutionLog
 import amf.core.client.{ExitCodes, ParserConfig}
 import amf.core.remote.Platform
 
@@ -11,12 +12,12 @@ class ParseCommand(override val platform: Platform) extends TranslateCommand(pla
   override def run(origConfig: ParserConfig): Future[Any] = {
     val config = origConfig.copy(outputFormat = Some("AMF Graph"), outputMediaType = Some("application/ld+json"))
     val res = for {
-      _         <- AMFInit()
-      _         <- processDialects(config)
-      model     <- parseInput(config)
-      _         <- checkValidation(config, model)
-      model     <- resolve(config, model)
-      generated <- generateOutput(config, model)
+      _         <- ExecutionLog.withStage("AMF Initialisation") { AMFInit() }
+      _         <- ExecutionLog.withStage("Processing dialects") { processDialects(config) }
+      model     <- ExecutionLog.withStage("Parsing") { parseInput(config) }
+      _         <- ExecutionLog.withStage("Validation") { checkValidation(config, model) }
+      model     <- ExecutionLog.withStage("Resolution") { resolve(config, model) }
+      generated <- ExecutionLog.withStage("Generation") { generateOutput(config, model) }
     } yield {
       generated
     }
