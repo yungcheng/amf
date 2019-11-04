@@ -96,6 +96,7 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
   def parse(): Option[AnyShape] = {
 
     if (detectDisjointUnion()) {
+      validateUnionType()
       Some(parseDisjointUnionType())
     } else {
       val parsedShape = detect(version) match {
@@ -117,6 +118,13 @@ case class OasTypeParser(entryOrNode: Either[YMapEntry, YNode],
       }
     }
   }
+
+  def validateUnionType(): Unit =
+    if (version.isInstanceOf[OAS30SchemaVersion])
+      ctx.violation(InvalidJsonSchemaType,
+                    "",
+                    s"Value of field 'type' must be a string, multiple types are not supported",
+                    map.key("type").get)
 
   protected def isOas: Boolean  = version.isInstanceOf[OASSchemaVersion]
   protected def isOas3: Boolean = version.isInstanceOf[OAS30SchemaVersion]
