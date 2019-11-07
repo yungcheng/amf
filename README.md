@@ -1,3 +1,4 @@
+lolo
 [![Build Status](https://jenkins.build.msap.io/buildStatus/icon?job=application/AMF/amf/master)](https://jenkins.build.msap.io/job/application/job/AMF/job/amf/job/master/)
 
 # AML Modeling Framework
